@@ -84,12 +84,14 @@ export function compileStyledText(txt: string): {
                     if (x !== undefined) {
                         throw new Error(
                             "Styled text error: mismatched tags. "
-                                + `Expected [/${x}], got [/${gn}]`,
+                            + `Expected [/${x}], got [/${gn}]`,
                         );
                     }
-                    else {throw new Error(
+                    else {
+                        throw new Error(
                             `Styled text error: stray end tag [/${gn}]`,
-                        );}
+                        );
+                    }
                 }
             }
             else styleStack.push(gn);
@@ -142,14 +144,14 @@ export function formatText(opt: DrawTextOpt): FormattedText {
             outline: Outline | null;
             filter: TexFilter;
         } = font instanceof FontData
-            ? {
-                outline: font.outline,
-                filter: font.filter,
-            }
-            : {
-                outline: null,
-                filter: DEF_FONT_FILTER,
-            };
+                ? {
+                    outline: font.outline,
+                    filter: font.filter,
+                }
+                : {
+                    outline: null,
+                    filter: DEF_FONT_FILTER,
+                };
 
         // TODO: customizable font tex filter
         const atlas: FontAtlas = fontAtlases[fontName] ?? {
@@ -199,8 +201,9 @@ export function formatText(opt: DrawTextOpt): FormattedText {
                 const m = c2d.measureText(ch);
                 let w = Math.ceil(m.width);
                 if (!w) continue;
-                let h = Math.ceil(Math.abs(m.actualBoundingBoxAscent))
-                    + Math.ceil(Math.abs(m.actualBoundingBoxDescent));
+                // let h = Math.ceil(Math.abs(m.actualBoundingBoxAscent))
+                //     + Math.ceil(Math.abs(m.actualBoundingBoxDescent));
+                let h = m.fontBoundingBoxAscent + m.fontBoundingBoxDescent;
 
                 // TODO: Test if this works with the verification of width and color
                 if (
