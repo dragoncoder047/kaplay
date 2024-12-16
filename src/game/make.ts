@@ -250,7 +250,7 @@ export function make<T>(comps: CompList<T> = []): GameObj<T> {
         },
 
         // use a comp
-        use(comp: Comp) {
+        use(this: GameObj, comp: Comp) {
             // tag
             if (typeof comp === "string") {
                 return tags.add(comp);
@@ -357,6 +357,10 @@ export function make<T>(comps: CompList<T> = []): GameObj<T> {
                     comp.add.call(this);
                     onCurCompCleanup = null;
                 }
+                if (comp.id) {
+                    this.trigger("use", comp.id);
+                    _k.game.events.trigger("use", this, comp.id);
+                }
             }
             else {
                 if (comp.require) {
@@ -366,7 +370,7 @@ export function make<T>(comps: CompList<T> = []): GameObj<T> {
         },
 
         // Remove components
-        unuse(id: string) {
+        unuse(this: GameObj, id: string) {
             if (compStates.has(id)) {
                 // check all components for a dependent, if there's one, throw an error
                 for (const comp of compStates.values()) {
@@ -378,6 +382,9 @@ export function make<T>(comps: CompList<T> = []): GameObj<T> {
                 }
 
                 compStates.delete(id);
+
+                this.trigger("unuse", id);
+                _k.game.events.trigger("unuse", this, id);
             }
             else if (treatTagsAsComponents && tags.has(id)) {
                 tags.delete(id);
@@ -428,7 +435,6 @@ export function make<T>(comps: CompList<T> = []): GameObj<T> {
 
                 const events: KEventController[] = [];
 
-                // TODO: handle when object add / remove tags
                 // TODO: clean up when obj destroyed
                 events.push(_k.k.onAdd((obj) => {
                     if (isChild(obj) && checkTagsOrComps(obj, t)) {
@@ -436,7 +442,23 @@ export function make<T>(comps: CompList<T> = []): GameObj<T> {
                     }
                 }));
                 events.push(_k.k.onDestroy((obj) => {
+                    if (checkTagsOrComps(obj, t)) {
+                        const idx = list.findIndex((o) => o.id === obj.id);
+                        if (idx !== -1) {
+                            list.splice(idx, 1);
+                        }
+                    }
+                }));
+                events.push(_k.k.onUse((obj) => {
                     if (isChild(obj) && checkTagsOrComps(obj, t)) {
+                        const idx = list.findIndex((o) => o.id === obj.id);
+                        if (idx == -1) {
+                            list.push(obj);
+                        }
+                    }
+                }));
+                events.push(_k.k.onUnuse((obj, id) => {
+                    if (isChild(obj) && !checkTagsOrComps(obj, t)) {
                         const idx = list.findIndex((o) => o.id === obj.id);
                         if (idx !== -1) {
                             list.splice(idx, 1);
@@ -574,26 +596,34 @@ export function make<T>(comps: CompList<T> = []): GameObj<T> {
         },
 
         // Tag a game object
-        tag(tag: Tag | Tag[]): void {
+        tag(this: GameObj, tag: Tag | Tag[]): void {
             if (Array.isArray(tag)) {
                 for (const t of tag) {
                     tags.add(t);
+                    this.trigger("tag", t);
+                    _k.game.events.trigger("tag", this, t);
                 }
             }
             else {
                 tags.add(tag);
+                this.trigger("tag", tag);
+                _k.game.events.trigger("tag", this, tag);
             }
         },
 
         // Untag a game object
-        untag(tag: Tag | Tag[]): void {
+        untag(this: GameObj, tag: Tag | Tag[]): void {
             if (Array.isArray(tag)) {
                 for (const t of tag) {
                     tags.delete(t);
+                    this.trigger("untag", t);
+                    _k.game.events.trigger("untag", this, t);
                 }
             }
             else {
                 tags.delete(tag);
+                this.trigger("untag", tag);
+                _k.game.events.trigger("untag", this, tag);
             }
         },
 
@@ -678,6 +708,14 @@ export function make<T>(comps: CompList<T> = []): GameObj<T> {
 
         onDestroy(action: () => void): KEventController {
             return this.on("destroy", action);
+        },
+
+        onUse(action: (id: string) => void): KEventController {
+            return this.on("use", action);
+        },
+
+        onUnuse(action: (id: string) => void): KEventController {
+            return this.on("unuse", action);
         },
 
         clearEvents() {

@@ -261,6 +261,7 @@ export function area(opt: AreaCompOpt = {}): AreaComp {
     let _offset: Vec2 = opt.offset ?? vec2(0);
     let localArea: Shape;
     let worldArea: Polygon;
+    const events: KEventController[] = [];
 
     if (!fakeMouse && !fakeMouseChecked) {
         fakeMouse = _k.k.get<FakeMouseComp | PosComp>("fakeMouse")[0];
@@ -276,10 +277,10 @@ export function area(opt: AreaCompOpt = {}): AreaComp {
         add(this: GameObj<AreaComp>) {
             areaCount++;
             if (this.area.cursor) {
-                this.onHover(() => _k.app.setCursor(this.area.cursor!));
+                events.push(this.onHover(() => _k.app.setCursor(this.area.cursor!)));
             }
 
-            this.onCollideUpdate((obj, col) => {
+            events.push(this.onCollideUpdate((obj, col) => {
                 if (!obj.id) {
                     throw new Error("area() requires the object to have an id");
                 }
@@ -292,11 +293,14 @@ export function area(opt: AreaCompOpt = {}): AreaComp {
 
                 colliding[obj.id] = col;
                 collidingThisFrame.add(obj.id);
-            });
+            }));
         },
 
         destroy() {
             areaCount--;
+            for (const event of events) {
+                event.cancel();
+            }
         },
 
         fixedUpdate(this: GameObj<AreaComp>) {
@@ -450,8 +454,8 @@ export function area(opt: AreaCompOpt = {}): AreaComp {
                     action();
                 }
             });
+            events.push(e);
 
-            this.onDestroy(() => e.cancel());
             return e;
         },
 

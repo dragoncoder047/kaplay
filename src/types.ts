@@ -311,6 +311,10 @@ export interface KAPLAYCtx<
      * // Recursively get all children and descendents
      * const allObjs = get("*", { recursive: true });
      * ```
+     * 
+     * // Get a live query which updates in real-time
+     * const allObjs = get("*", { liveUpdate: true });
+     * ```
      *
      * @returns A list of game objects that have the tag.
      * @since v2000.0
@@ -338,6 +342,18 @@ export interface KAPLAYCtx<
      *     include: "friend",
      *     exclude: "bean",
      * }); // will return [bag]
+     * 
+     * // get all visible friends
+     * query({
+     *     include: "friend",
+     *     visible: true,
+     * });
+     * 
+     * // get all friends less than 150 pixels from bean
+     * bean.query({
+     *     include: "friend",
+     *     distance: 150,
+     * });
      *
      * ```
      *
@@ -1597,6 +1613,7 @@ export interface KAPLAYCtx<
     /**
      * Register an event that runs when an object is added
      * 
+     * @param tag - The tag to match, only called for objects with a matching tag.
      * @param action - The function that runs when an object is added.
      * 
      * @example
@@ -1619,7 +1636,6 @@ export interface KAPLAYCtx<
     /**
      * Register an event that runs when an object with the provided tag is destroyed.
      * 
-     * @param tag - The tag to listen for. 
      * @param action - The function that runs when an object is destroyed.
      * 
      * @example
@@ -1646,6 +1662,7 @@ export interface KAPLAYCtx<
     /**
      * Register an event that runs when an object is destroyed.
      * 
+     * @param tag - The tag to match, only called for objects with a matching tag.
      * @param action - The function that runs when an object is destroyed.
      * 
      * @example
@@ -1667,6 +1684,50 @@ export interface KAPLAYCtx<
      * @group Events
      */
     onDestroy(action: (obj: GameObj) => void): KEventController;
+    /**
+     * Register an event that runs when an object starts using a component.
+     * 
+     * @param action - The function that runs when an object starts using component.
+     * @param id - The id of the component that was added.
+     *
+     * @returns The event controller.
+     * @since v3001.1
+     * @group Events
+     */
+    onUse(action: (obj: GameObj, id: string) => void): KEventController;
+    /**
+     * Register an event that runs when an object stops using a component.
+     * 
+     * @param action - The function that runs when an object stops using a component.
+     * @param id - The id of the component that was removed.d
+     * 
+     * @returns The event controller.
+     * @since v3001.1
+     * @group Events
+     */
+    onUnuse(action: (obj: GameObj, id: string) => void): KEventController;
+    /**
+     * Register an event that runs when an object gains a tag.
+     * 
+     * @param action - The function that runs when an object gains a tag.
+     * @param tag - The tag which was added.
+     *
+     * @returns The event controller.
+     * @since v3001.1
+     * @group Events
+     */
+    onTag(action: (obj: GameObj, tag: string) => void): KEventController;
+    /**
+     * Register an event that runs when an object loses a tag.
+     * 
+     * @param action - The function that runs when an object loses a tag.
+     * @param tag - The tag which was removed.
+     * 
+     * @returns The event controller.
+     * @since v3001.1
+     * @group Events
+     */
+    onUntag(action: (obj: GameObj, tag: string) => void): KEventController;
     /**
      * Register an event that runs when all assets finished loading.
      *
@@ -4231,9 +4292,6 @@ export interface KAPLAYCtx<
      * ```js
      * // tween bean to mouse position
      * tween(bean.pos, mousePos(), 1, (p) => bean.pos = p, easings.easeOutBounce)
-     *
-     * // tween() returns a then-able that can be used with await
-     * await tween(bean.opacity, 1, 0.5, (val) => bean.opacity = val, easings.easeOutQuad)
      * ```
      *
      * @group Math
@@ -5510,6 +5568,21 @@ export interface KAPLAYCtx<
      */
     KEventController: typeof KEventController;
     /**
+     * Cancels the event by returning the cancel symbol.
+     * 
+     * @example
+     * ```js
+     * onKeyPress((key) => {
+     *     if (key === "q") return cancel();
+     * });
+     * ```
+     * 
+     * @returns The cancel event symbol.
+     * @since v3001.1
+     * @group Events
+     */
+    cancel: () => Symbol,
+    /**
      * Current KAPLAY library version.
      *
      * @since v3000.0
@@ -6148,6 +6221,20 @@ export interface GameObjRaw {
      * @since v2000.1
      */
     onDestroy(action: () => void): KEventController;
+    /**
+     * Register an event that runs when a component is used.
+     *
+     * @returns The event controller.
+     * @since v4000.0
+     */
+    onCompAdd(action: (id: string) => void): KEventController;
+    /**
+     * Register an event that runs when a component is unused.
+     *
+     * @returns The event controller.
+     * @since v4000.0
+     */
+    onCompDestroy(action: (id: string) => void): KEventController;
     /**
      * If game obj is attached to the scene graph.
      *
@@ -6914,6 +7001,8 @@ export interface LevelComp extends Comp {
      */
     getPath(from: Vec2, to: Vec2, opts?: PathFindOpt): Vec2[] | null;
     getSpatialMap(): GameObj[][];
+    removeFromSpatialMap(obj: GameObj): void;
+    insertIntoSpatialMap(obj: GameObj): void;
     onSpatialMapChanged(cb: () => void): KEventController;
     onNavigationMapInvalid(cb: () => void): KEventController;
     invalidateNavigationMap(): void;

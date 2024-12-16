@@ -1,4 +1,5 @@
-const VERSION = "3001.0.0";
+// the definitive version! :bean:
+const VERSION = "4000.0.0";
 
 import { type ButtonsDef, initApp } from "./app";
 
@@ -77,6 +78,7 @@ import {
     ASCII_CHARS,
     BG_GRID_SIZE,
     DBG_FONT,
+    EVENT_CANCEL_SYMBOL,
     LOG_MAX,
     MAX_TEXT_CACHE_SIZE,
 } from "./constants";
@@ -272,7 +274,11 @@ import {
     onLoading,
     onResize,
     onSceneLeave,
+    onTag,
+    onUntag,
+    onUnuse,
     onUpdate,
+    onUse,
     scene,
     setCamPos,
     setCamRot,
@@ -844,6 +850,16 @@ const kaplay = <
             onDestroy(obj => {
                 sap.remove(obj as GameObj<AreaComp>);
             });
+            onUse((obj, id) => {
+                if (id === "area") {
+                    sap.add(obj as GameObj<AreaComp>);
+                }
+            });
+            onUnuse((obj, id) => {
+                if (id === "area") {
+                    sap.remove(obj as GameObj<AreaComp>);
+                }
+            });
             onSceneLeave(scene => {
                 sapInit = false;
                 sap.clear();
@@ -1171,6 +1187,10 @@ const kaplay = <
         onDraw,
         onAdd,
         onDestroy,
+        onUse,
+        onUnuse,
+        onTag,
+        onUntag,
         onClick,
         onCollide,
         onCollideUpdate,
@@ -1372,6 +1392,7 @@ const kaplay = <
         KEvent,
         KEventHandler,
         KEventController,
+        cancel: () => EVENT_CANCEL_SYMBOL,
     };
 
     _k.k = ctx;
