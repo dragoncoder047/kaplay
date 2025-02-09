@@ -257,7 +257,6 @@ import {
     go,
     initEvents,
     initGame,
-    KeepFlags,
     layers,
     make,
     on,
@@ -1459,7 +1458,6 @@ const kaplay = <
         KEvent,
         KEventHandler,
         KEventController,
-        KeepFlags,
         cancel: () => EVENT_CANCEL_SYMBOL,
         BlendMode,
     };
