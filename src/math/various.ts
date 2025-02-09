@@ -2,15 +2,17 @@ import { height, width } from "../gfx";
 import type { GameObj } from "../types";
 import { deg2rad, Mat23, Vec2, vec2 } from "./math";
 
-export function calcTransform(obj: GameObj, tr: Mat23): Mat23 {
+export function calcLocalTransform(obj: GameObj, tr: Mat23): Mat23 {
     tr.setIdentity();
     if (obj.pos) tr.translateSelfV(obj.pos);
     if (obj.scale) tr.scaleSelfV(obj.scale);
     if (obj.angle) tr.rotateSelf(obj.angle);
-    if (obj.parent) {
-        tr.mulSelf(obj.parent.transform);
-    }
     return tr;
+}
+
+export function calcWorldTransform(obj: GameObj, tr: Mat23): Mat23 {
+    tr.setMat23(obj.localTransform);
+    return obj.parent ? tr.mulSelf(obj.parent.worldTransform) : tr;
 }
 
 // convert a screen space coordinate to webgl normalized device coordinate
@@ -34,6 +36,7 @@ export function getArcPts(
 
     const pts: Vec2[] = [];
     const nverts = Math.ceil((end - start) / deg2rad(8) * res);
+    // const nverts = Math.max(Math.sqrt(((radiusX + radiusY) / 2) * 20), 8);
     const step = (end - start) / nverts;
 
     // Rotate vector v by r nverts+1 times

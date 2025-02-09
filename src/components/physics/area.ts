@@ -1,4 +1,11 @@
 import { DEF_ANCHOR } from "../../constants";
+import {
+    AreaDirty,
+    LocalAreaDirty,
+    LocalAreaUpdated,
+    WorldAreaDirty,
+    WorldAreaUpdated,
+} from "../../game/make";
 import { isFixed } from "../../game/utils";
 import {
     anchorPt,
@@ -252,6 +259,11 @@ let fakeMouseChecked = false;
 export function area(opt: AreaCompOpt = {}): AreaComp {
     const colliding: Record<string, Collision> = {};
     const collidingThisFrame = new Set();
+    let _shape: Shape | null = opt.shape ?? null;
+    let _scale: Vec2 = opt.scale ? vec2(opt.scale) : vec2(1);
+    let _offset: Vec2 = opt.offset ?? vec2(0);
+    let localArea: Shape;
+    let worldArea: Polygon;
     const events: KEventController[] = [];
 
     if (!fakeMouse && !fakeMouseChecked) {
@@ -349,9 +361,27 @@ export function area(opt: AreaCompOpt = {}): AreaComp {
         },
 
         area: {
-            shape: opt.shape ?? null,
-            scale: opt.scale ? vec2(opt.scale) : vec2(1),
-            offset: opt.offset ?? vec2(0),
+            get shape() {
+                return _shape;
+            },
+            set shape(value: Shape | null) {
+                _shape = value;
+                (this as unknown as GameObj).dirtyFlags |= AreaDirty;
+            },
+            get scale() {
+                return _scale;
+            },
+            set scale(value: Vec2) {
+                _scale = value;
+                (this as unknown as GameObj).dirtyFlags |= AreaDirty;
+            },
+            get offset() {
+                return _offset;
+            },
+            set offset(value: Vec2) {
+                _offset = value;
+                (this as unknown as GameObj).dirtyFlags |= AreaDirty;
+            },
             cursor: opt.cursor ?? null,
         },
 
@@ -556,29 +586,41 @@ export function area(opt: AreaCompOpt = {}): AreaComp {
         localArea(
             this: GameObj<AreaComp | { renderArea(): Shape }>,
         ): Shape {
-            return this.area.shape
-                ? this.area.shape
-                : this.renderArea();
+            if (this.dirtyFlags & LocalAreaDirty) {
+                localArea = this.area.shape
+                    ? this.area.shape
+                    : this.renderArea();
+
+                this.dirtyFlags &= ~LocalAreaDirty;
+                this.dirtyFlags |= LocalAreaUpdated;
+            }
+            return localArea;
         },
 
-        // TODO: cache
-        worldArea(this: GameObj<AreaComp | AnchorComp>): Polygon {
-            const localArea = this.localArea();
+        worldArea(this: GameObj<PosComp | AreaComp | AnchorComp>): Polygon {
+            if (this.dirtyFlags & WorldAreaDirty) {
+                const localArea = this.localArea();
 
-            const transform = this.transform
-                .clone()
-                .translateSelfV(this.area.offset)
-                .scaleSelfV(vec2(this.area.scale ?? 1));
+                const transform = this.worldTransform
+                    .clone()
+                    .translateSelfV(this.area.offset)
+                    .scaleSelfV(vec2(this.area.scale ?? 1));
 
-            if (localArea instanceof Rect) {
-                const offset = anchorPt(this.anchor || DEF_ANCHOR)
-                    .add(1, 1)
-                    .scale(-0.5)
-                    .scale(localArea.width, localArea.height);
-                transform.translateSelfV(offset);
+                if (localArea instanceof Rect) {
+                    const offset = anchorPt(this.anchor || DEF_ANCHOR)
+                        .add(1, 1)
+                        .scale(-0.5)
+                        .scale(localArea.width, localArea.height);
+                    transform.translateSelfV(offset);
+                }
+
+                worldArea = localArea.transform(transform) as Polygon;
+
+                this.dirtyFlags &= ~WorldAreaDirty;
+                this.dirtyFlags |= WorldAreaUpdated;
             }
 
-            return localArea.transform(transform) as Polygon;
+            return worldArea;
         },
 
         screenArea(this: GameObj<AreaComp | FixedComp>): Shape {
@@ -596,9 +638,8 @@ export function area(opt: AreaCompOpt = {}): AreaComp {
                 return `area: ${this.area.scale?.x?.toFixed(1)}x`;
             }
             else {
-                return `area: (${this.area.scale?.x?.toFixed(1)}x, ${
-                    this.area.scale.y?.toFixed(1)
-                }y)`;
+                return `area: (${this.area.scale?.x?.toFixed(1)}x, ${this.area.scale.y?.toFixed(1)
+                    }y)`;
             }
         },
     };

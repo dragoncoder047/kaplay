@@ -17,7 +17,7 @@ import {
 } from "../gfx";
 import { _k } from "../kaplay";
 import { Mat23 } from "../math/math";
-import { calcTransform } from "../math/various";
+import { calcLocalTransform, calcWorldTransform as calcWorldTransform } from "../math/various";
 import {
     type Comp,
     type CompList,
@@ -41,6 +41,19 @@ export type SetParentOpt = {
     keep: KeepFlags;
 };
 
+export const LocalTransformDirty = 1;
+export const LocalAreaDirty = 2;
+export const WorldTransformDirty = 4;
+export const WorldAreaDirty = 8;
+export const BBoxDirty = 16;
+export const AllDirty = 31;
+export const AreaDirty = LocalAreaDirty | WorldAreaDirty | BBoxDirty;
+export const LocalTransformUpdated = LocalAreaDirty | WorldTransformDirty | WorldAreaDirty
+    | BBoxDirty;
+export const LocalAreaUpdated = WorldAreaDirty | BBoxDirty;
+export const WorldTransformUpdated = WorldAreaDirty | BBoxDirty;
+export const WorldAreaUpdated = BBoxDirty;
+
 export function make<T>(comps: CompList<T> = []): GameObj<T> {
     const compStates = new Map<string, Comp>();
     const anonymousCompStates: Comp[] = [];
@@ -52,13 +65,16 @@ export function make<T>(comps: CompList<T> = []): GameObj<T> {
     let onCurCompCleanup: Function | null = null;
     let paused = false;
     let _parent: GameObj;
+    let localTransform: Mat23 = new Mat23();
+    let worldTransform: Mat23 = new Mat23();
+    let parentTransform: Mat23 = new Mat23();
 
     // the game object without the event methods, added later
     const obj: Omit<GameObj, keyof typeof evs> = {
         id: uid(),
         // TODO: a nice way to hide / pause when add()-ing
         hidden: false,
-        transform: new Mat23(),
+        // transform: new Mat4(),
         children: [],
 
         get parent() {
@@ -77,6 +93,7 @@ export function make<T>(comps: CompList<T> = []): GameObj<T> {
             if (p) {
                 p.children.push(this as GameObj);
             }
+            this.dirtyFlags = AllDirty;
         },
 
         setParent(p: GameObj, opt: SetParentOpt) {
@@ -97,6 +114,33 @@ export function make<T>(comps: CompList<T> = []): GameObj<T> {
                 );
             }
             this.parent = p;
+        },
+        dirtyFlags: AllDirty,
+
+        get localTransform() {
+            if (this.dirtyFlags & LocalTransformDirty) {
+                localTransform = calcLocalTransform(this as GameObj<any>, localTransform);
+
+                this.dirtyFlags &= ~LocalTransformDirty;
+                this.dirtyFlags |= LocalTransformUpdated;
+            }
+
+            return localTransform;
+        },
+
+        get worldTransform() {
+            if (
+                parentTransform !== this.parent?.worldTransform
+                || this.dirtyFlags & WorldTransformDirty
+            ) {
+                worldTransform = calcWorldTransform(this as GameObj<any>, worldTransform);
+                parentTransform = this.parent?.worldTransform;
+
+                this.dirtyFlags &= ~WorldTransformDirty;
+                this.dirtyFlags |= WorldTransformUpdated;
+            }
+
+            return worldTransform;
         },
 
         set paused(p) {
@@ -123,7 +167,8 @@ export function make<T>(comps: CompList<T> = []): GameObj<T> {
                 );
             }
             obj.parent = this;
-            calcTransform(obj, obj.transform);
+            obj.dirtyFlags = AllDirty;
+            this.children.push(obj);
             // TODO: trigger add for children
             obj.trigger("add", obj);
             _k.game.events.trigger("add", obj);
@@ -301,15 +346,15 @@ export function make<T>(comps: CompList<T> = []): GameObj<T> {
                             comp[k]?.();
                             onCurCompCleanup = null;
                         }
-                        : comp[<keyof typeof comp> k];
-                    gc.push(this.on(k, <any> func).cancel);
+                        : comp[<keyof typeof comp>k];
+                    gc.push(this.on(k, <any>func).cancel);
                 }
                 else {
                     if (this[k] === undefined) {
                         // assign comp fields to game obj
                         Object.defineProperty(this, k, {
-                            get: () => comp[<keyof typeof comp> k],
-                            set: (val) => comp[<keyof typeof comp> k] = val,
+                            get: () => comp[<keyof typeof comp>k],
+                            set: (val) => comp[<keyof typeof comp>k] = val,
                             configurable: true,
                             enumerable: true,
                         });
@@ -321,9 +366,9 @@ export function make<T>(comps: CompList<T> = []): GameObj<T> {
                         )?.id;
                         throw new Error(
                             `Duplicate component property: "${k}" while adding component "${comp.id}"`
-                                + (originalCompId
-                                    ? ` (originally added by "${originalCompId}")`
-                                    : ""),
+                            + (originalCompId
+                                ? ` (originally added by "${originalCompId}")`
+                                : ""),
                         );
                     }
                 }

@@ -63,7 +63,7 @@ export function areaEffector(opts: AreaEffectorCompOpt): AreaEffectorComp {
                 obj.addForce(
                     this.useGlobalAngle
                         ? this.force
-                        : this.force.rotate(this.transform.getRotation()),
+                        : this.force.rotate(this.worldTransform.getRotation()),
                 );
                 if (this.linearDrag) {
                     obj.addForce(obj.vel.scale(-this.linearDrag));
@@ -107,8 +107,8 @@ export function pointEffector(opts: PointEffectorCompOpt): PointEffectorComp {
                 const forceScale = this.forceMode === "constant"
                     ? 1
                     : this.forceMode === "inverseLinear"
-                    ? 1 / distance
-                    : 1 / distance ** 2;
+                        ? 1 / distance
+                        : 1 / distance ** 2;
                 const force = dir.scale(
                     this.forceMagnitude * forceScale / length,
                 );
@@ -142,7 +142,7 @@ export function constantForce(opts: ConstantForceCompOpt): ConstantForceComp {
                 this.addForce(
                     this.useGlobalAngle
                         ? this.force
-                        : this.force.rotate(this.transform.getRotation()),
+                        : this.force.rotate(this.worldTransform.getRotation()),
                 );
             }
         },
