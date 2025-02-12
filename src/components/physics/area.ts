@@ -23,9 +23,8 @@ import {
     Polygon,
     Rect,
     rgb,
-    testPolygonPoint,
     Vec2,
-    vec2,
+    vec2
 } from "../../math";
 import type {
     Collision,
@@ -78,7 +77,7 @@ export interface AreaComp extends Comp {
      *
      * @since v3000.0
      */
-    collisionIgnore: Tag[];
+    collisionIgnore: Set<Tag>;
     restitution?: number;
     friction?: number;
     /**
@@ -273,7 +272,7 @@ export function area(opt: AreaCompOpt = {}): AreaComp {
 
     return {
         id: "area",
-        collisionIgnore: opt.collisionIgnore ?? [],
+        collisionIgnore: new Set(opt.collisionIgnore ?? []),
         restitution: opt.restitution,
         friction: opt.friction,
 
