@@ -890,6 +890,7 @@ export class Mat23 {
         this.d = m.d;
         this.e = m.e;
         this.f = m.f;
+        return this;
     }
     setIdentity() {
         this.a = 1;
@@ -898,6 +899,7 @@ export class Mat23 {
         this.d = 1;
         this.e = 0;
         this.f = 0;
+        return this;
     }
     mul(other: Mat23): Mat23 {
         return new Mat23(
