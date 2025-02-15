@@ -106,10 +106,6 @@ export function make<T>(comps: CompList<T> = []): GameObj<T> {
             return paused;
         },
 
-        get tagsAsSet() {
-            return tags;
-        },
-
         get tags() {
             return Array.from(tags);
         },

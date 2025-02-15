@@ -1,6 +1,6 @@
-# KAPLAY.js, a JavaScript game library
+# KAPLAY
 
-![#KAPLAY](/kaplay.webp)
+![KAPLAY](/kaplay.webp)
 
 [**KAPLAY**](https://kaplayjs.com/) is a JavaScript library that helps you make
 games fast and fun!
