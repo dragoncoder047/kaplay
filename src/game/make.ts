@@ -17,7 +17,7 @@ import {
 } from "../gfx";
 import { _k } from "../kaplay";
 import { Mat23 } from "../math/math";
-import { calcLocalTransform, calcWorldTransform as calcWorldTransform } from "../math/various";
+import { calcLocalTransform, calcWorldTransform } from "../math/various";
 import {
     type Comp,
     type CompList,
@@ -27,8 +27,7 @@ import {
     type QueryOpt,
     type Tag,
 } from "../types";
-import { KEventController, KEventHandler, uid } from "../utils";
-
+import { KEvent, KEventController, KEventHandler, uid } from "../utils";
 export const LocalTransformDirty = 1;
 export const LocalAreaDirty = 2;
 export const WorldTransformDirty = 4;
@@ -42,11 +41,25 @@ export const LocalAreaUpdated = WorldAreaDirty | BBoxDirty;
 export const WorldTransformUpdated = WorldAreaDirty | BBoxDirty;
 export const WorldAreaUpdated = BBoxDirty;
 
+export enum KeepFlags {
+    Pos = 1,
+    Angle = 2,
+    Scale = 4,
+    All = 7,
+}
+
+export type SetParentOpt = {
+    keep: KeepFlags;
+};
+
 export function make<T>(comps: CompList<T> = []): GameObj<T> {
     const compStates = new Map<string, Comp>();
     const anonymousCompStates: Comp[] = [];
     const cleanups = {} as Record<string, (() => unknown)[]>;
     const events = new KEventHandler();
+    const fixedUpdateEvents = new KEvent<[]>();
+    const updateEvents = new KEvent<[]>();
+    const drawEvents = new KEvent<[]>();
     const inputEvents: KEventController[] = [];
     const tags = new Set<Tag>("*");
     const treatTagsAsComponents = _k.globalOpt.tagsAsComponents;
@@ -170,7 +183,7 @@ export function make<T>(comps: CompList<T> = []): GameObj<T> {
             this.children
                 /*.sort((o1, o2) => (o1.z ?? 0) - (o2.z ?? 0))*/
                 .forEach((child) => child.fixedUpdate());
-            this.trigger("fixedUpdate");
+            fixedUpdateEvents.trigger();
         },
 
         update(this: GameObj) {
@@ -178,7 +191,7 @@ export function make<T>(comps: CompList<T> = []): GameObj<T> {
             this.children
                 /*.sort((o1, o2) => (o1.z ?? 0) - (o2.z ?? 0))*/
                 .forEach((child) => child.update());
-            this.trigger("update");
+            updateEvents.trigger();
         },
 
         draw(
@@ -216,11 +229,11 @@ export function make<T>(comps: CompList<T> = []): GameObj<T> {
                         children[i].draw();
                     }
                 }, () => {
-                    this.trigger("draw");
+                    drawEvents.trigger();
                 });
             }
             else {
-                this.trigger("draw");
+                drawEvents.trigger();
                 for (let i = 0; i < children.length; i++) {
                     children[i].draw();
                 }
@@ -250,6 +263,8 @@ export function make<T>(comps: CompList<T> = []): GameObj<T> {
         use(this: GameObj, comp: Comp) {
             if (typeof comp == "string") {
                 // for use add(["tag"])
+                this.trigger("tag", comp);
+                _k.game.events.trigger("tag", this, comp);
                 return tags.add(comp);
             }
             else if (!comp || typeof comp != "object") {
@@ -647,7 +662,14 @@ export function make<T>(comps: CompList<T> = []): GameObj<T> {
             name: string,
             action: (...args: unknown[]) => void,
         ): KEventController {
-            const ctrl = events.on(name, action.bind(this));
+            const ctrl = ((func) => {
+                switch (name) {
+                    case "fixedUpdate": return fixedUpdateEvents.add(func);
+                    case "update": return updateEvents.add(func);
+                    case "draw": return drawEvents.add(func);
+                    default: return events.on(name, func);
+                }
+            })(action.bind(this));
             if (onCurCompCleanup) {
                 onCurCompCleanup(() => ctrl.cancel());
             }
@@ -656,7 +678,6 @@ export function make<T>(comps: CompList<T> = []): GameObj<T> {
 
         trigger(name: string, ...args: unknown[]): void {
             events.trigger(name, ...args);
-            _k.game.objEvents.trigger(name, this, ...args);
         },
 
         destroy() {
@@ -721,6 +742,9 @@ export function make<T>(comps: CompList<T> = []): GameObj<T> {
 
         clearEvents() {
             events.clear();
+            fixedUpdateEvents.clear();
+            updateEvents.clear();
+            drawEvents.clear();
         },
     };
 
