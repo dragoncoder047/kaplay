@@ -160,8 +160,6 @@ import {
     KEvent,
     KEventController,
     KEventHandler,
-    ObjectPool,
-    type Resettable,
 } from "./utils";
 
 import {
@@ -769,13 +767,13 @@ const kaplay = <
         game.root.update();
     }
 
-    class Collision implements Resettable {
-        source: GameObj | null = null;
-        target: GameObj | null = null;
-        normal: Vec2 | null = null;
-        distance: number | undefined;
+    class Collision {
+        source: GameObj;
+        target: GameObj;
+        normal: Vec2;
+        distance: number;
         resolved: boolean = false;
-        init(
+        constructor(
             source: GameObj,
             target: GameObj,
             normal: Vec2,
@@ -787,20 +785,16 @@ const kaplay = <
             this.normal = normal;
             this.distance = distance;
             this.resolved = resolved;
-            return this;
-        }
-        constructor() {
-            return Object.create(Collision.prototype);
         }
         get displacement() {
-            return this.normal!.scale(this.distance!);
+            return this.normal.scale(this.distance);
         }
         reverse() {
-            return collisionPool.get().init(
-                this.target!,
-                this.source!,
-                this.normal!.scale(-1),
-                this.distance!,
+            return new Collision(
+                this.target,
+                this.source,
+                this.normal.scale(-1),
+                this.distance,
                 this.resolved,
             );
         }
@@ -822,16 +816,7 @@ const kaplay = <
         preventResolution() {
             this.resolved = true;
         }
-        reset() {
-            this.source = null;
-            this.target = null;
-            this.normal = null;
-            this.distance = undefined;
-            this.resolved = false;
-        }
     }
-
-    const collisionPool = new ObjectPool(() => new Collision);
 
     function narrowPhase(
         obj: GameObj<AreaComp>,
@@ -846,7 +831,7 @@ const kaplay = <
             other.worldArea(),
         );
         if (res) {
-            const col1 = collisionPool.get().init(
+            const col1 = new Collision(
                 obj,
                 other,
                 res.normal,
@@ -857,8 +842,6 @@ const kaplay = <
             // resolution only has to happen once
             col2.resolved = col1.resolved;
             other.trigger("collideUpdate", obj, col2);
-            collisionPool.release(col1);
-            collisionPool.release(col2);
         }
         return true;
     }
