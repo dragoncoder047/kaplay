@@ -160,6 +160,8 @@ import {
     KEvent,
     KEventController,
     KEventHandler,
+    ObjectPool,
+    type Resettable,
 } from "./utils";
 
 import {
@@ -370,8 +372,7 @@ const kaplay = <
 >(
     gopt: KAPLAYOpt<TPlugins, TButtons> = {},
 ): TPlugins extends [undefined] ? KAPLAYCtx<TButtons, TButtonsName>
-    : KAPLAYCtx<TButtons, TButtonsName> & MergePlugins<TPlugins> =>
-{
+    : KAPLAYCtx<TButtons, TButtonsName> & MergePlugins<TPlugins> => {
     if (_k.k) {
         console.warn(
             "KAPLAY already initialized, you are calling kaplay() multiple times, it may lead bugs!",
@@ -768,13 +769,13 @@ const kaplay = <
         game.root.update();
     }
 
-    class Collision {
-        source: GameObj;
-        target: GameObj;
-        normal: Vec2;
-        distance: number;
+    class Collision implements Resettable {
+        source: GameObj | null = null;
+        target: GameObj | null = null;
+        normal: Vec2 | null = null;
+        distance: number | undefined;
         resolved: boolean = false;
-        constructor(
+        init(
             source: GameObj,
             target: GameObj,
             normal: Vec2,
@@ -786,16 +787,20 @@ const kaplay = <
             this.normal = normal;
             this.distance = distance;
             this.resolved = resolved;
+            return this;
+        }
+        constructor() {
+            return Object.create(Collision.prototype);
         }
         get displacement() {
-            return this.normal.scale(this.distance);
+            return this.normal!.scale(this.distance!);
         }
         reverse() {
-            return new Collision(
-                this.target,
-                this.source,
-                this.normal.scale(-1),
-                this.distance,
+            return collisionPool.get().init(
+                this.target!,
+                this.source!,
+                this.normal!.scale(-1),
+                this.distance!,
                 this.resolved,
             );
         }
@@ -817,7 +822,16 @@ const kaplay = <
         preventResolution() {
             this.resolved = true;
         }
+        reset() {
+            this.source = null;
+            this.target = null;
+            this.normal = null;
+            this.distance = undefined;
+            this.resolved = false;
+        }
     }
+
+    const collisionPool = new ObjectPool(() => new Collision);
 
     function narrowPhase(
         obj: GameObj<AreaComp>,
@@ -840,7 +854,7 @@ const kaplay = <
             other.worldArea(),
         );
         if (res) {
-            const col1 = new Collision(
+            const col1 = collisionPool.get().init(
                 obj,
                 other,
                 res.normal,
@@ -851,6 +865,8 @@ const kaplay = <
             // resolution only has to happen once
             col2.resolved = col1.resolved;
             other.trigger("collideUpdate", obj, col2);
+            collisionPool.release(col1);
+            collisionPool.release(col2);
         }
         return true;
     }
@@ -1008,7 +1024,7 @@ const kaplay = <
 
         // TODO: this should only run once
         app.run(
-            () => {},
+            () => { },
             () => {
                 frameStart();
 
@@ -1071,7 +1087,7 @@ const kaplay = <
             // clear canvas
             gl.clear(
                 gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT
-                    | gl.STENCIL_BUFFER_BIT,
+                | gl.STENCIL_BUFFER_BIT,
             );
 
             // unbind everything
@@ -1569,7 +1585,7 @@ const kaplay = <
     // export everything to window if global is set
     if (gopt.global !== false) {
         for (const key in ctx) {
-            (<any> window[<any> key]) = ctx[key as keyof KAPLAYCtx];
+            (<any>window[<any>key]) = ctx[key as keyof KAPLAYCtx];
         }
     }
 

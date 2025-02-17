@@ -6,6 +6,7 @@ export * from "./dataURL";
 export * from "./deepEq";
 export * from "./log";
 export * from "./numbers";
+export * from "./objectPool";
 export * from "./overload";
 export * from "./runes";
 export * from "./sets";
