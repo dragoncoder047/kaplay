@@ -136,7 +136,7 @@ import {
     rgb,
     RNG,
     shuffle,
-    SweepAndPrune,
+    SweepAndPruneHorizontal,
     testCirclePolygon,
     testLineCircle,
     testLineLine,
@@ -846,7 +846,7 @@ const kaplay = <
         return true;
     }
 
-    const sap = new SweepAndPrune();
+    const sap = new SweepAndPruneHorizontal();
     let sapInit = false;
     function broadPhase() {
         if (!usesArea()) {
