@@ -234,8 +234,8 @@ export class SweepAndPruneBoth {
     }
 
     *[Symbol.iterator](): Generator<[GameObj<AreaComp>, GameObj<AreaComp>], void, void> {
-        function hash(pair: GameObj<AreaComp>[]) {
-            const [l, h] = pair[0].id! < pair[1].id! ? [pair[0].id!, pair[1].id!] : [pair[1].id! < pair[0].id!];
+        function hash(pair: [GameObj<AreaComp>, GameObj<AreaComp>]) {
+            const [l, h] = pair[0].id! < pair[1].id! ? [pair[0].id!, pair[1].id!] : [pair[1].id!, pair[0].id!];
             return `${l}-${h}`;
         }
         const horizontalColliding = [...this.horizontal];
