@@ -112,6 +112,7 @@ import {
     evaluateQuadraticSecondDerivative,
     gjkShapeIntersection,
     gjkShapeIntersects,
+    HashGrid,
     hermite,
     hsl2rgb,
     isConvex,
@@ -857,7 +858,7 @@ const kaplay = <
         return true;
     }
 
-    const sap = gopt.sapDirection === "both" ? new SweepAndPruneBoth() : gopt.sapDirection === "vertical" ? new SweepAndPruneVertical() : new SweepAndPruneHorizontal();
+    const sap = gopt.sapDirection === "hashgrid" ? new HashGrid(gopt) : gopt.sapDirection === "both" ? new SweepAndPruneBoth() : gopt.sapDirection === "vertical" ? new SweepAndPruneVertical() : new SweepAndPruneHorizontal();
     let sapInit = false;
     function broadPhase() {
         if (!usesArea()) {

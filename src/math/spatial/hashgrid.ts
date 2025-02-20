@@ -3,7 +3,7 @@ import { DEF_HASH_GRID_SIZE } from "../../constants";
 import type { GameObj } from "../../types";
 import { calcTransform } from "../various";
 
-class HashGrid {
+export class HashGrid {
     grid: Record<number, Record<number, GameObj<AreaComp>[]>> = {};
     cellSize: number;
     objects: Array<GameObj<AreaComp>> = [];
