@@ -6034,7 +6034,7 @@ export interface KAPLAYOpt<
      * @since v4000
      * @experimental This feature is unstable, it may be removed at any time.
      */
-    sapDirection?: "horizontal" | "vertical" | "both";
+    sapDirection?: "horizontal" | "vertical" | "both" | "hashgrid";
 }
 
 /**
