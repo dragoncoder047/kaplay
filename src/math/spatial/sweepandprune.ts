@@ -85,7 +85,7 @@ export class SweepAndPruneHorizontal {
     /**
      * Iterates all object pairs which potentially collide
      */
-    *[Symbol.iterator]() {
+    *[Symbol.iterator](): Generator<[GameObj<AreaComp>, GameObj<AreaComp>], void, void> {
         const touching = new Set<GameObj<AreaComp>>();
 
         for (const edge of this.edges) {
@@ -185,7 +185,7 @@ export class SweepAndPruneVertical {
     /**
      * Iterates all object pairs which potentially collide
      */
-    *[Symbol.iterator]() {
+    *[Symbol.iterator](): Generator<[GameObj<AreaComp>, GameObj<AreaComp>], void, void> {
         const touching = new Set<GameObj<AreaComp>>();
 
         for (const edge of this.edges) {
@@ -233,15 +233,15 @@ export class SweepAndPruneBoth {
         this.vertical.update();
     }
 
-    *[Symbol.iterator]() {
+    *[Symbol.iterator](): Generator<[GameObj<AreaComp>, GameObj<AreaComp>], void, void> {
         const horizontalColliding = [...this.horizontal];
         const verticalColliding = [...this.vertical];
-        const horizontalMap = new Map<string, GameObj<AreaComp>[]>(horizontalColliding.map(c => [`${c[0].id}-${c[1].id}`, c]));
-        const verticalMap = new Map<string, GameObj<AreaComp>[]>(verticalColliding.map(c => [`${c[0].id}-${c[1].id}`, c]));
+        const horizontalMap = new Map<string, [GameObj<AreaComp>, GameObj<AreaComp>]>(horizontalColliding.map(c => [`${c[0].id}-${c[1].id}`, c]));
+        const verticalMap = new Map<string, [GameObj<AreaComp>, GameObj<AreaComp>]>(verticalColliding.map(c => [`${c[0].id}-${c[1].id}`, c]));
         const intersection = new Set(horizontalMap.keys()).intersection(new Set(verticalMap.keys()));
 
         for (let key in intersection) {
-            yield horizontalMap.get(key);
+            yield horizontalMap.get(key)!;
         }
     }
 }
