@@ -625,7 +625,7 @@ export function area(opt: AreaCompOpt = {}): AreaComp {
         },
 
         aabb(this: GameObj<AreaComp>): Rect {
-            if (this.dirtyFlags & WorldAreaDirty) {
+            if (aabb === undefined || this.dirtyFlags & WorldAreaDirty) {
                 aabb = this.worldArea().bbox();
             }
             return aabb;
