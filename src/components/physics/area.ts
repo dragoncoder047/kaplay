@@ -198,6 +198,15 @@ export interface AreaComp extends Comp {
      * Get the geometry data for the collider in screen coordinate space.
      */
     screenArea(): Shape;
+    /**
+     * Get the axis-aligned bounding box in world coordinates.
+     * Wherever you would previously have used `obj.worldArea().bbox()`,
+     * you can use `obj.aabb()` instead.
+     *
+     * @since v4000.0
+     * @experimental
+     */
+    aabb(): Rect;
 }
 
 /**
@@ -263,6 +272,7 @@ export function area(opt: AreaCompOpt = {}): AreaComp {
     let _offset: Vec2 = opt.offset ?? vec2(0);
     let localArea: Shape;
     let worldArea: Polygon;
+    let aabb: Rect;
     const events: KEventController[] = [];
 
     if (!fakeMouse && !fakeMouseChecked) {
@@ -620,6 +630,13 @@ export function area(opt: AreaCompOpt = {}): AreaComp {
             }
 
             return worldArea;
+        },
+
+        aabb(this: GameObj<AreaComp>): Rect {
+            if (this.dirtyFlags & WorldAreaDirty) {
+                aabb = this.worldArea().bbox();
+            }
+            return aabb;
         },
 
         screenArea(this: GameObj<AreaComp | FixedComp>): Shape {
