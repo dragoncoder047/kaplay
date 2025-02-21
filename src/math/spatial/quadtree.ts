@@ -8,15 +8,13 @@ export class Quadtree implements SweepAndPruneLike {
     maxObjects: number;
     maxLevels: number;
     level: number;
-    margin: number;
     nodes: Quadtree[];
     objects: GameObj<AreaComp>[];
 
-    constructor(bounds: Rect, maxObjects: number = 8, maxLevels: number = 4, level: number = 0, margin: number = 64) {
+    constructor(bounds: Rect, maxObjects: number = 8, maxLevels: number = 4, level: number = 0) {
         this.bounds = bounds;
         this.maxObjects = maxObjects;
         this.maxLevels = maxLevels;
-        this.margin = margin;
         this.level = level;
         this.nodes = [];
         this.objects = [];
