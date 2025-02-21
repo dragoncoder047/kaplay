@@ -3,6 +3,13 @@ import type { AreaComp } from "../../components"
 import type { GameObj } from "../../types"
 import { Rect, vec2 } from "../math"
 
+enum NodeIndex {
+    TR = 0,
+    TL = 1,
+    BL = 2,
+    BR = 3,
+}
+
 export class Quadtree implements SweepAndPruneLike {
     bounds: Rect;
     maxObjects: number;
@@ -41,8 +48,8 @@ export class Quadtree implements SweepAndPruneLike {
         }
     }
 
-    getIndices(rect: Rect) {
-        const indices: number[] = [];
+    getIndices(rect: Rect): NodeIndex[] {
+        const indices: NodeIndex[] = [];
         const boundsCenterX = this.bounds.pos.x + (this.bounds.width / 2);
         const boundsCenterY = this.bounds.pos.y + (this.bounds.height / 2);
 
@@ -52,19 +59,19 @@ export class Quadtree implements SweepAndPruneLike {
         const bottomRightIsDown = rect.pos.y + rect.height > boundsCenterY;
 
         if (topLeftIsUp && bottomRightIsRight) {
-            indices.push(0); // TopRight
+            indices.push(NodeIndex.TR);
         }
 
         if (topLeftIsLeft && topLeftIsUp) {
-            indices.push(1); // TopLeft
+            indices.push(NodeIndex.TL);
         }
 
         if (topLeftIsLeft && bottomRightIsDown) {
-            indices.push(2); // BottomLeft
+            indices.push(NodeIndex.BL);
         }
 
         if (bottomRightIsRight && bottomRightIsDown) {
-            indices.push(3); // BottomRight
+            indices.push(NodeIndex.BR);
         }
 
         return indices;
@@ -136,18 +143,18 @@ export class Quadtree implements SweepAndPruneLike {
         return index !== -1;
     }
 
-    update(): void {
+    update(root = this): void {
         if (this.level === 0)
             this.maybe_embiggen();
-        for (let obj of this.objects) {
+        else for (let obj of this.objects) {
             // https://gamedev.stackexchange.com/a/20609
-            if (this.nodes.some(n => n.is_oob(obj.worldArea().bbox()))) {
+            if (this.is_oob(obj.worldArea().bbox())) {
                 this.remove(obj, true);
-                this.add(obj);
+                root.add(obj);
             }
         }
         for (let child of this.nodes) {
-            child.update();
+            child.update(root);
         }
     }
 
@@ -190,13 +197,39 @@ export class Quadtree implements SweepAndPruneLike {
             rect.pos.y + rect.height > this.bounds.pos.y + this.bounds.height;
     }
 
-    private has_oob(): boolean {
-        return this.objects.some(x => this.is_oob(x.worldArea().bbox()))
-            || this.nodes.some(x => x.has_oob());
+    private has_oob(directionsToCheck: Set<"left" | "right" | "up" | "down">): boolean {
+        // Run around the outside of the quadtree and get objects only in the nodes on the edge
+        if (this.objects.some(obj => this.is_oob(obj.worldArea().bbox()))) return true;
+        if (this.nodes.length === 0) return false;
+        if (directionsToCheck.size === 0) return false;
+        const memoized = (expensive: () => boolean): (() => boolean) => { 
+            let result: boolean | undefined; 
+            return () => { 
+                if (result !== undefined) return result; 
+                return result = expensive(); 
+            }; 
+        };
+        const brHasOOB = memoized(() => this.nodes[NodeIndex.BR]?.has_oob(directionsToCheck.intersection(new Set(["right", "down"]))));
+        const blHasOOB = memoized(() => this.nodes[NodeIndex.BL]?.has_oob(directionsToCheck.intersection(new Set(["left", "down"]))));
+        const trHasOOB = memoized(() => this.nodes[NodeIndex.TR]?.has_oob(directionsToCheck.intersection(new Set(["right", "up"]))));
+        const tlHasOOB = memoized(() => this.nodes[NodeIndex.TL]?.has_oob(directionsToCheck.intersection(new Set(["left", "up"]))));
+        if (directionsToCheck.has("left")) {
+            if (tlHasOOB() || blHasOOB()) return true;
+        }
+        if (directionsToCheck.has("right")) {
+            if (trHasOOB() || brHasOOB()) return true;
+        }
+        if (directionsToCheck.has("up")) {
+            if (tlHasOOB() || trHasOOB()) return true;
+        }
+        if (directionsToCheck.has("down")) {
+            if (blHasOOB() || brHasOOB()) return true;
+        }
+        return false;
     }
 
     private maybe_embiggen() {
-        if (!this.has_oob()) return;
+        if (!this.has_oob(new Set(["left", "right", "up", "down"]))) return;
         const newBounds = this.bbox_union();
         const objs = this.everything();
         this.clear();
@@ -220,11 +253,25 @@ export class Quadtree implements SweepAndPruneLike {
     }
 
     *[Symbol.iterator](): Generator<[GameObj<AreaComp>, GameObj<AreaComp>], void, void> {
-        const checkedObjs = new Set<GameObj<AreaComp>>();
-        for (let obj of this.everything()) {
-            const potentiallyColliding = this.retrieve(obj.worldArea().bbox());
-            yield* potentiallyColliding.filter(x => !checkedObjs.has(x)).map(other => [obj, other] as [GameObj<AreaComp>, GameObj<AreaComp>]);
-            checkedObjs.add(obj);
+        function* processNode(node: Quadtree, ancestorObjects: GameObj<AreaComp>[]): Generator<[GameObj<AreaComp>, GameObj<AreaComp>], void, void> {
+            for (let i = 0; i < node.objects.length; i++) {
+                const obj1 = node.objects[i];
+                // An object in this sub node can potentially collide with objects in an ancestor node
+                for (const obj2 of ancestorObjects) {
+                    yield [obj1, obj2];
+                }
+                // An object in this sub node can potentially collide with other objects in this node
+                for (let j = i; j < node.objects.length; j++) {
+                    yield [obj1, node.objects[j]];
+                }
+            }
+            if (node.nodes.length > 0) {
+                const allObjects = ancestorObjects.concat(node.objects)
+                for (const n of node.nodes) {
+                    yield* processNode(n, allObjects);
+                }
+            }
         }
+        yield* processNode(this, []);
     }
 }
