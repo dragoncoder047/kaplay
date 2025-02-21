@@ -2642,10 +2642,19 @@ export class Rect {
             this.pos.add(0, this.height),
         ];
     }
-    transform(m: Mat23): Polygon {
-        return new Polygon(
-            this.points().map((pt) => m.transformPoint(pt, vec2())),
-        );
+    transform(m: Mat23): Polygon | Rect {
+        const transformedPoints = this.points().map((pt) => m.transformPoint(pt, vec2()));
+        if (m.getRotation() % 90 === 0) {
+            // find top left and bottom right points
+            const topLeft = transformedPoints.reduce((acc, pt) => {
+                return acc.x + acc.y > pt.x + pt.y ? pt : acc;
+            });
+            const bottomRight = transformedPoints.reduce((acc, pt) => {
+                return acc.x + acc.y > pt.x + pt.y ? acc : pt;
+            });
+            return Rect.fromPoints(topLeft, bottomRight);
+        }
+        return new Polygon(transformedPoints);
     }
     bbox(): Rect {
         return this.clone();
@@ -2775,7 +2784,7 @@ export class Ellipse {
             c * this.radiusY,
         );
     }
-    transform(tr: Mat23): Ellipse {
+    transform(tr: Mat23): Ellipse | Circle {
         if (this.angle == 0 && tr.getRotation() == 0) {
             // No rotation, so we can just take the scale and translation
             return new Ellipse(
@@ -2797,6 +2806,9 @@ export class Ellipse {
             // Return the ellipse made from the transformed unit circle
             const ellipse = Ellipse.fromMat2(T);
             ellipse.center = tr.transformPoint(this.center, vec2());
+            if (ellipse.radiusX === ellipse.radiusY) {
+                return new Circle(ellipse.center, ellipse.radiusX);
+            }
             return ellipse;
         }
     }
