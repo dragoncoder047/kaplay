@@ -78,7 +78,7 @@ export class Quadtree implements SweepAndPruneLike {
     }
 
     add(obj: GameObj<AreaComp>) {
-        const rect = obj.worldArea().bbox();
+        const rect = obj.aabb();
 
         if (this.nodes.length) {
             const indices = this.getIndices(rect);
@@ -98,7 +98,7 @@ export class Quadtree implements SweepAndPruneLike {
             }
 
             for (let i = 0; i < this.objects.length; i++) {
-                const indices = this.getIndices(this.objects[i].worldArea().bbox());
+                const indices = this.getIndices(this.objects[i].aabb());
                 for (let k = 0; k < indices.length; k++) {
                     this.nodes[indices[k]].add(this.objects[i]);
                 }
@@ -148,7 +148,7 @@ export class Quadtree implements SweepAndPruneLike {
             this.maybe_embiggen();
         else for (let obj of this.objects) {
             // https://gamedev.stackexchange.com/a/20609
-            if (this.is_oob(obj.worldArea().bbox())) {
+            if (this.is_oob(obj.aabb())) {
                 this.remove(obj, true);
                 root.add(obj);
             }
@@ -199,7 +199,7 @@ export class Quadtree implements SweepAndPruneLike {
 
     private has_oob(directionsToCheck: Set<"left" | "right" | "up" | "down">): boolean {
         // Run around the outside of the quadtree and get objects only in the nodes on the edge
-        if (this.objects.some(obj => this.is_oob(obj.worldArea().bbox()))) return true;
+        if (this.objects.some(obj => this.is_oob(obj.aabb()))) return true;
         if (this.nodes.length === 0) return false;
         if (directionsToCheck.size === 0) return false;
         const memoized = (expensive: () => boolean): (() => boolean) => { 
@@ -241,7 +241,7 @@ export class Quadtree implements SweepAndPruneLike {
 
     private bbox_union(): Rect {
         let minX = Number.MAX_VALUE, minY = Number.MAX_VALUE, maxX = Number.MIN_VALUE, maxY = Number.MIN_VALUE;
-        const objBoxes = this.objects.map(x => x.worldArea().bbox());
+        const objBoxes = this.objects.map(x => x.aabb());
         const nodeBoxes = this.nodes.map(x => x.bbox_union());
         for (let box of objBoxes.concat(nodeBoxes)) {
             minX = Math.min(minX, box.pos.x);
