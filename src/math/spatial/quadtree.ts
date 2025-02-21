@@ -130,7 +130,9 @@ export class Quadtree implements SweepAndPruneLike {
     remove(obj: GameObj<AreaComp>, fast = false): boolean {
         const index = this.objects.indexOf(obj);
 
-        this.objects[index] = undefined;
+        if (index > -1) {
+            this.objects[index] = undefined;
+        }
 
         for (let i = 0; i < this.nodes.length; i++) {
             this.nodes[i].remove(obj);
