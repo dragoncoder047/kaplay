@@ -1,3 +1,4 @@
+import type { SweepAndPruneLike } from ".";
 import type { AreaComp } from "../../components";
 import type { GameObj } from "../../types";
 import { calcTransform } from "../various";
@@ -20,7 +21,7 @@ class HorizontalEdge {
 /**
  * One dimensional sweep and prune in the horizontal direction
  */
-export class SweepAndPruneHorizontal {
+export class SweepAndPruneHorizontal implements SweepAndPruneLike {
     edges: Array<HorizontalEdge>;
     objects: Map<GameObj<AreaComp>, [HorizontalEdge, HorizontalEdge]>;
 
@@ -120,7 +121,7 @@ class VerticalEdge {
 /**
  * One dimensional sweep and prune
  */
-export class SweepAndPruneVertical {
+export class SweepAndPruneVertical implements SweepAndPruneLike {
     edges: Array<VerticalEdge>;
     objects: Map<GameObj<AreaComp>, [VerticalEdge, VerticalEdge]>;
 
@@ -205,13 +206,9 @@ export class SweepAndPruneVertical {
 /**
  * two dimensional sweep and prune
  */
-export class SweepAndPruneBoth {
+export class SweepAndPruneBoth implements SweepAndPruneLike {
     horizontal: SweepAndPruneHorizontal = new SweepAndPruneHorizontal();
     vertical: SweepAndPruneVertical = new SweepAndPruneVertical();
-
-    constructor() {
-
-    }
 
     add(obj: GameObj<AreaComp>) {
         this.horizontal.add(obj);

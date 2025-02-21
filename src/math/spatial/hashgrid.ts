@@ -1,15 +1,17 @@
+import type { SweepAndPruneLike } from ".";
 import type { AreaComp } from "../../components/physics/area";
 import { DEF_HASH_GRID_SIZE } from "../../constants";
 import type { GameObj } from "../../types";
 import { calcTransform } from "../various";
 
-export class HashGrid {
-    grid: Record<number, Record<number, GameObj<AreaComp>[]>> = {};
-    cellSize: number;
-    objects: Array<GameObj<AreaComp>> = [];
-
+export class HashGrid implements SweepAndPruneLike {
+    private cellSize: number;
+    private objects: GameObj<AreaComp>[];
+    private grid: Record<number, Record<number, GameObj<AreaComp>[]>>;
     constructor(gopt: any) {
         this.cellSize = gopt.hashGridSize || DEF_HASH_GRID_SIZE;
+        this.objects = [];
+        this.grid = {};
     }
 
     add(obj: GameObj<AreaComp>) {
@@ -37,7 +39,7 @@ export class HashGrid {
     /**
      * Iterates all object pairs which potentially collide
      */
-    *[Symbol.iterator]() {
+    *[Symbol.iterator](): Generator<[GameObj<AreaComp>, GameObj<AreaComp>], void, void> {
         for (const obj of this.objects) {
             const area = obj.worldArea();
             const bbox = area.bbox();

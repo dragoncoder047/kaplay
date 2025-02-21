@@ -139,7 +139,9 @@ import {
     shuffle,
     SweepAndPruneBoth,
     SweepAndPruneHorizontal,
+    type SweepAndPruneLike,
     SweepAndPruneVertical,
+    Quadtree,
     testCirclePolygon,
     testLineCircle,
     testLineLine,
@@ -373,8 +375,7 @@ const kaplay = <
 >(
     gopt: KAPLAYOpt<TPlugins, TButtons> = {},
 ): TPlugins extends [undefined] ? KAPLAYCtx<TButtons, TButtonsName>
-    : KAPLAYCtx<TButtons, TButtonsName> & MergePlugins<TPlugins> =>
-{
+    : KAPLAYCtx<TButtons, TButtonsName> & MergePlugins<TPlugins> => {
     if (_k.k) {
         console.warn(
             "KAPLAY already initialized, you are calling kaplay() multiple times, it may lead bugs!",
@@ -858,7 +859,15 @@ const kaplay = <
         return true;
     }
 
-    const sap = gopt.sapDirection === "hashgrid" ? new HashGrid(gopt) : gopt.sapDirection === "both" ? new SweepAndPruneBoth() : gopt.sapDirection === "vertical" ? new SweepAndPruneVertical() : new SweepAndPruneHorizontal();
+    const sap: SweepAndPruneLike = ((hgt) => {
+        switch (hgt) {
+            case "both": return new SweepAndPruneBoth();
+            case "vertical": return new SweepAndPruneVertical();
+            case "hashgrid": return new HashGrid(gopt);
+            case "quadtree": return new Quadtree(new Rect(vec2(0), width(), height()), 4, Number.MAX_SAFE_INTEGER);
+            default: return new SweepAndPruneHorizontal();
+        }
+    })(gopt.sapDirection);
     let sapInit = false;
     function broadPhase() {
         if (!usesArea()) {
@@ -885,7 +894,7 @@ const kaplay = <
                     sap.remove(obj as GameObj<AreaComp>);
                 }
             });
-            onSceneLeave(scene => {
+            onSceneLeave(() => {
                 sapInit = false;
                 sap.clear();
             });
@@ -1011,7 +1020,7 @@ const kaplay = <
 
         // TODO: this should only run once
         app.run(
-            () => {},
+            () => { },
             () => {
                 frameStart();
 
@@ -1572,7 +1581,7 @@ const kaplay = <
     // export everything to window if global is set
     if (gopt.global !== false) {
         for (const key in ctx) {
-            (<any> window[<any> key]) = ctx[key as keyof KAPLAYCtx];
+            (<any>window[<any>key]) = ctx[key as keyof KAPLAYCtx];
         }
     }
 
