@@ -128,36 +128,43 @@ export class Quadtree implements SweepAndPruneLike {
     }
 
     remove(obj: GameObj<AreaComp>, fast = false): boolean {
-        const index = this.objects.indexOf(obj);
-
-        if (index > -1) {
-            this.objects[index] = undefined;
-        }
-
         for (let i = 0; i < this.nodes.length; i++) {
             this.nodes[i].remove(obj);
         }
-
-        if (this.level === 0 && !fast) {
+        if (fast) return true;
+        const index = this.objects.indexOf(obj);
+        if (index > -1) {
+            this.objects[index] = undefined;
+        }
+        if (this.level === 0) {
             this.join();
         }
-
         return index !== -1;
     }
 
     update(root = this): void {
         if (this.level === 0)
             this.maybe_embiggen();
-        else for (let obj of this.objects) {
-            if (!obj) continue;
-            // https://gamedev.stackexchange.com/a/20609
-            if (this.is_oob(obj.worldArea().bbox())) {
-                this.remove(obj, true);
-                root.add(obj);
+        else {
+            let keep: GameObj<AreaComp>[] = [];
+            let readd: GameObj<AreaComp>[] = [];
+            for (let i = 0; i < this.objects.length; i++) {
+                const obj = this.objects[i];
+                if (!obj) continue;
+                // https://gamedev.stackexchange.com/a/20609
+                if (this.is_oob(obj.worldArea().bbox())) readd.push(obj);
+                else keep.push(obj);
+            }
+            for (let i = 0; i < readd.length; i++) {
+                this.remove(readd[i], true);
+            }
+            this.objects = keep;
+            for (let i = 0; i < readd.length; i++) {
+                root.add(readd[i]);
             }
         }
-        for (let child of this.nodes) {
-            child.update(root);
+        for (let i = 0; i < this.nodes.length; i++) {
+            this.nodes[i].update(root);
         }
     }
 
@@ -237,20 +244,20 @@ export class Quadtree implements SweepAndPruneLike {
         const objs = this.everything().filter(obj => obj !== undefined);
         this.clear();
         this.bounds = newBounds;
-        for (let obj of objs) {
-            this.add(obj);
+        for (let i = 0; i < objs.length; i++) {
+            this.add(objs[i]);
         }
     }
 
     private bbox_union(): Rect {
         let minX = Number.MAX_VALUE, minY = Number.MAX_VALUE, maxX = Number.MIN_VALUE, maxY = Number.MIN_VALUE;
-        const objBoxes = this.objects.flatMap(x => x ? [x.worldArea().bbox()] : []);
-        const nodeBoxes = this.nodes.map(x => x.bbox_union());
-        for (let box of objBoxes.concat(nodeBoxes)) {
-            minX = Math.min(minX, box.pos.x);
-            minY = Math.min(minY, box.pos.y);
-            maxX = Math.max(maxX, box.pos.x + box.width);
-            maxY = Math.max(maxY, box.pos.y + box.height);
+        const boxes = this.objects.flatMap(x => x ? [x.worldArea().bbox()] : []);
+        boxes.push(...this.nodes.map(x => x.bbox_union()));
+        for (let i = 0; i < boxes.length; i++) {
+            minX = Math.min(minX, boxes[i].pos.x);
+            minY = Math.min(minY, boxes[i].pos.y);
+            maxX = Math.max(maxX, boxes[i].pos.x + boxes[i].width);
+            maxY = Math.max(maxY, boxes[i].pos.y + boxes[i].height);
         }
         return new Rect(vec2(minX, minY), maxX - minX, maxY - minY);
     }
@@ -261,20 +268,22 @@ export class Quadtree implements SweepAndPruneLike {
                 const obj1 = node.objects[i];
                 if (!obj1) continue;
                 // An object in this sub node can potentially collide with objects in an ancestor node
-                for (const obj2 of ancestorObjects) {
+                for (let j = 0; j < ancestorObjects.length; j++) {
+                    const obj2 = ancestorObjects[j];
                     if (!obj2) continue;
                     yield [obj1, obj2];
                 }
                 // An object in this sub node can potentially collide with other objects in this node
                 for (let j = i; j < node.objects.length; j++) {
-                    if (!node.objects[j]) continue;
-                    yield [obj1, node.objects[j]!];
+                    const obj2 = node.objects[j]
+                    if (!obj2) continue;
+                    yield [obj1, obj2];
                 }
             }
             if (node.nodes.length > 0) {
                 const allObjects = ancestorObjects.concat(node.objects)
-                for (const n of node.nodes) {
-                    yield* processNode(n, allObjects);
+                for (let i = 0; i < node.nodes.length; i++) {
+                    yield* processNode(node.nodes[i], allObjects);
                 }
             }
         }
