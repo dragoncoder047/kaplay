@@ -16,7 +16,7 @@ export class Quadtree implements SweepAndPruneLike {
     maxLevels: number;
     level: number;
     nodes: Quadtree[];
-    objects: GameObj<AreaComp>[];
+    objects: (GameObj<AreaComp> | undefined)[];
 
     constructor(bounds: Rect, maxObjects: number = 8, maxLevels: number = 4, level: number = 0) {
         this.bounds = bounds;
@@ -98,9 +98,11 @@ export class Quadtree implements SweepAndPruneLike {
             }
 
             for (let i = 0; i < this.objects.length; i++) {
-                const indices = this.getIndices(this.objects[i].worldArea().bbox());
+                const obj = this.objects[i];
+                if (!obj) continue;
+                const indices = this.getIndices(obj.worldArea().bbox());
                 for (let k = 0; k < indices.length; k++) {
-                    this.nodes[indices[k]].add(this.objects[i]);
+                    this.nodes[indices[k]].add(obj);
                 }
             }
 
@@ -128,9 +130,7 @@ export class Quadtree implements SweepAndPruneLike {
     remove(obj: GameObj<AreaComp>, fast = false): boolean {
         const index = this.objects.indexOf(obj);
 
-        if (index > -1) {
-            this.objects.splice(index, 1);
-        }
+        this.objects[index] = undefined;
 
         for (let i = 0; i < this.nodes.length; i++) {
             this.nodes[i].remove(obj);
@@ -147,6 +147,7 @@ export class Quadtree implements SweepAndPruneLike {
         if (this.level === 0)
             this.maybe_embiggen();
         else for (let obj of this.objects) {
+            if (!obj) continue;
             // https://gamedev.stackexchange.com/a/20609
             if (this.is_oob(obj.worldArea().bbox())) {
                 this.remove(obj, true);
@@ -158,17 +159,17 @@ export class Quadtree implements SweepAndPruneLike {
         }
     }
 
-    private everything(): GameObj<AreaComp>[] {
+    private everything(): (GameObj<AreaComp> | undefined)[] {
         let allObjects = Array.from(this.objects);
         for (let i = 0; i < this.nodes.length; i++) {
             const nodeObjects = this.nodes[i].everything();
-            allObjects = allObjects.concat(nodeObjects);
+            allObjects.push(...nodeObjects);
         }
         return allObjects;
     }
 
     join(): GameObj<AreaComp>[] {
-        const everything = this.everything();
+        const everything = this.everything().filter(obj => obj !== undefined);
         const uniqueObjects = Array.from(new Set(everything));
         if (uniqueObjects.length <= this.maxObjects) {
             this.objects = uniqueObjects;
@@ -199,15 +200,15 @@ export class Quadtree implements SweepAndPruneLike {
 
     private has_oob(directionsToCheck: Set<"left" | "right" | "up" | "down">): boolean {
         // Run around the outside of the quadtree and get objects only in the nodes on the edge
-        if (this.objects.some(obj => this.is_oob(obj.worldArea().bbox()))) return true;
+        if (this.objects.some(obj => obj && this.is_oob(obj.worldArea().bbox()))) return true;
         if (this.nodes.length === 0) return false;
         if (directionsToCheck.size === 0) return false;
-        const memoized = (expensive: () => boolean): (() => boolean) => { 
-            let result: boolean | undefined; 
-            return () => { 
-                if (result !== undefined) return result; 
-                return result = expensive(); 
-            }; 
+        const memoized = (expensive: () => boolean): (() => boolean) => {
+            let result: boolean | undefined;
+            return () => {
+                if (result !== undefined) return result;
+                return result = expensive();
+            };
         };
         const brHasOOB = memoized(() => this.nodes[NodeIndex.BR]?.has_oob(directionsToCheck.intersection(new Set(["right", "down"]))));
         const blHasOOB = memoized(() => this.nodes[NodeIndex.BL]?.has_oob(directionsToCheck.intersection(new Set(["left", "down"]))));
@@ -231,7 +232,7 @@ export class Quadtree implements SweepAndPruneLike {
     private maybe_embiggen() {
         if (!this.has_oob(new Set(["left", "right", "up", "down"]))) return;
         const newBounds = this.bbox_union();
-        const objs = this.everything();
+        const objs = this.everything().filter(obj => obj !== undefined);
         this.clear();
         this.bounds = newBounds;
         for (let obj of objs) {
@@ -241,7 +242,7 @@ export class Quadtree implements SweepAndPruneLike {
 
     private bbox_union(): Rect {
         let minX = Number.MAX_VALUE, minY = Number.MAX_VALUE, maxX = Number.MIN_VALUE, maxY = Number.MIN_VALUE;
-        const objBoxes = this.objects.map(x => x.worldArea().bbox());
+        const objBoxes = this.objects.flatMap(x => x ? [x.worldArea().bbox()] : []);
         const nodeBoxes = this.nodes.map(x => x.bbox_union());
         for (let box of objBoxes.concat(nodeBoxes)) {
             minX = Math.min(minX, box.pos.x);
@@ -253,16 +254,19 @@ export class Quadtree implements SweepAndPruneLike {
     }
 
     *[Symbol.iterator](): Generator<[GameObj<AreaComp>, GameObj<AreaComp>], void, void> {
-        function* processNode(node: Quadtree, ancestorObjects: GameObj<AreaComp>[]): Generator<[GameObj<AreaComp>, GameObj<AreaComp>], void, void> {
+        function* processNode(node: Quadtree, ancestorObjects: (GameObj<AreaComp> | undefined)[]): Generator<[GameObj<AreaComp>, GameObj<AreaComp>], void, void> {
             for (let i = 0; i < node.objects.length; i++) {
                 const obj1 = node.objects[i];
+                if (!obj1) continue;
                 // An object in this sub node can potentially collide with objects in an ancestor node
                 for (const obj2 of ancestorObjects) {
+                    if (!obj2) continue;
                     yield [obj1, obj2];
                 }
                 // An object in this sub node can potentially collide with other objects in this node
                 for (let j = i; j < node.objects.length; j++) {
-                    yield [obj1, node.objects[j]];
+                    if (!node.objects[j]) continue;
+                    yield [obj1, node.objects[j]!];
                 }
             }
             if (node.nodes.length > 0) {
