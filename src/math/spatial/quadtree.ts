@@ -20,8 +20,7 @@ export class Quadtree implements SweepAndPruneLike {
     maxLevels: number;
     level: number;
     nodes: Quadtree[];
-
-    objects: Set<GameObj>;
+    objects: Set<GameObj<AreaComp>>;
 
     /**
      * Creates a new quadtree
@@ -173,7 +172,7 @@ export class Quadtree implements SweepAndPruneLike {
      * @param obj The object to add
      * @param bbox The bounding box of the object
      */
-    insert(obj: GameObj<any>, bbox: Rect): void {
+    insert(obj: GameObj<AreaComp>, bbox: Rect): void {
         // If we reached max objects, subdivide and redistribute
         if (this.objects.size >= this.maxObjects) {
             if (this.nodes.length === 0) {
@@ -208,7 +207,7 @@ export class Quadtree implements SweepAndPruneLike {
     }
 
     add(obj: GameObj<AreaComp>): void {
-        this.insert(obj, obj.worldArea().bbox());
+        this.insert(obj, obj.aabb());
     }
 
     /**
@@ -216,7 +215,7 @@ export class Quadtree implements SweepAndPruneLike {
      * @param rect The rect to test with
      * @returns A set of objects potentially intersecting the rectangle
      */
-    retrieve(rect: Rect): Set<GameObj> {
+    retrieve(rect: Rect): Set<GameObj<AreaComp>> {
         let retrievedObjects = this.objects;
 
         if (this.nodes.length) {
@@ -236,7 +235,7 @@ export class Quadtree implements SweepAndPruneLike {
      * @param obj The object to remove
      * @param fast No node collapse if true
      */
-    remove(obj: GameObj<any>, fast = false): boolean {
+    remove(obj: GameObj<AreaComp>, fast = false): boolean {
         if (this.objects.delete(obj)) {
             if (!fast) {
                 this.merge();
@@ -264,7 +263,7 @@ export class Quadtree implements SweepAndPruneLike {
      * @param bbox The new bounding box
      * 
      */
-    updateObject(root: Quadtree, obj: GameObj<any>, bbox: Rect): void {
+    updateObject(root: Quadtree, obj: GameObj<AreaComp>, bbox: Rect): void {
         this.remove(obj);
         root.insert(obj, bbox);
     }
@@ -311,70 +310,73 @@ export class Quadtree implements SweepAndPruneLike {
      * Update this tree
      */
     update() {
+        this.maybe_embiggen();
         this.updateNode(this);
     }
 
-    // private is_oob(rect: Rect) {
-    //     return rect.pos.x < this.bounds.pos.x ||
-    //         rect.pos.y < this.bounds.pos.y ||
-    //         rect.pos.x + rect.width > this.bounds.pos.x + this.bounds.width ||
-    //         rect.pos.y + rect.height > this.bounds.pos.y + this.bounds.height;
-    // }
+    has_oob(directionsToCheck: Set<"left" | "right" | "up" | "down">): boolean {
+        // Run around the outside of the quadtree and get objects only in the nodes on the edge
+        if (setSome(this.objects, obj => this.isOutside(obj.aabb()))) return true;
+        if (this.nodes.length === 0) return false;
+        if (directionsToCheck.size === 0) return false;
+        const memoized = (expensive: () => boolean): (() => boolean) => {
+            let result: boolean | undefined;
+            return () => {
+                if (result !== undefined) return result;
+                return result = expensive();
+            };
+        };
+        const brHasOOB = memoized(() => this.nodes[NodeIndex.BR]?.has_oob(directionsToCheck.intersection(new Set(["right", "down"]))));
+        const blHasOOB = memoized(() => this.nodes[NodeIndex.BL]?.has_oob(directionsToCheck.intersection(new Set(["left", "down"]))));
+        const trHasOOB = memoized(() => this.nodes[NodeIndex.TR]?.has_oob(directionsToCheck.intersection(new Set(["right", "up"]))));
+        const tlHasOOB = memoized(() => this.nodes[NodeIndex.TL]?.has_oob(directionsToCheck.intersection(new Set(["left", "up"]))));
+        if (directionsToCheck.has("left")) {
+            if (tlHasOOB() || blHasOOB()) return true;
+        }
+        if (directionsToCheck.has("right")) {
+            if (trHasOOB() || brHasOOB()) return true;
+        }
+        if (directionsToCheck.has("up")) {
+            if (tlHasOOB() || trHasOOB()) return true;
+        }
+        if (directionsToCheck.has("down")) {
+            if (blHasOOB() || brHasOOB()) return true;
+        }
+        return false;
+    }
 
-    // private has_oob(directionsToCheck: Set<"left" | "right" | "up" | "down">): boolean {
-    //     // Run around the outside of the quadtree and get objects only in the nodes on the edge
-    //     if (this.objects.some(obj => obj && this.is_oob(obj.aabb()))) return true;
-    //     if (this.nodes.length === 0) return false;
-    //     if (directionsToCheck.size === 0) return false;
-    //     const memoized = (expensive: () => boolean): (() => boolean) => {
-    //         let result: boolean | undefined;
-    //         return () => {
-    //             if (result !== undefined) return result;
-    //             return result = expensive();
-    //         };
-    //     };
-    //     const brHasOOB = memoized(() => this.nodes[NodeIndex.BR]?.has_oob(directionsToCheck.intersection(new Set(["right", "down"]))));
-    //     const blHasOOB = memoized(() => this.nodes[NodeIndex.BL]?.has_oob(directionsToCheck.intersection(new Set(["left", "down"]))));
-    //     const trHasOOB = memoized(() => this.nodes[NodeIndex.TR]?.has_oob(directionsToCheck.intersection(new Set(["right", "up"]))));
-    //     const tlHasOOB = memoized(() => this.nodes[NodeIndex.TL]?.has_oob(directionsToCheck.intersection(new Set(["left", "up"]))));
-    //     if (directionsToCheck.has("left")) {
-    //         if (tlHasOOB() || blHasOOB()) return true;
-    //     }
-    //     if (directionsToCheck.has("right")) {
-    //         if (trHasOOB() || brHasOOB()) return true;
-    //     }
-    //     if (directionsToCheck.has("up")) {
-    //         if (tlHasOOB() || trHasOOB()) return true;
-    //     }
-    //     if (directionsToCheck.has("down")) {
-    //         if (blHasOOB() || brHasOOB()) return true;
-    //     }
-    //     return false;
-    // }
+    maybe_embiggen() {
+        if (!this.has_oob(new Set(["left", "right", "up", "down"]))) return;
+        const newBounds = this.bbox_union();
+        const objs = this.everything();
+        this.clear();
+        this.bounds = newBounds;
+        for (const obj of objs) {
+            this.add(obj);
+        }
+    }
 
-    // private maybe_embiggen() {
-    //     if (!this.has_oob(new Set(["left", "right", "up", "down"]))) return;
-    //     const newBounds = this.bbox_union();
-    //     const objs = this.everything().filter(obj => obj !== undefined);
-    //     this.clear();
-    //     this.bounds = newBounds;
-    //     for (let i = 0; i < objs.length; i++) {
-    //         this.add(objs[i]);
-    //     }
-    // }
-    //
-    // private bbox_union(): Rect {
-    //     let minX = Number.MAX_VALUE, minY = Number.MAX_VALUE, maxX = Number.MIN_VALUE, maxY = Number.MIN_VALUE;
-    //     const boxes = this.objects.flatMap(x => x ? [x.aabb()] : []);
-    //     boxes.push(...this.nodes.map(x => x.bbox_union()));
-    //     for (let i = 0; i < boxes.length; i++) {
-    //         minX = Math.min(minX, boxes[i].pos.x);
-    //         minY = Math.min(minY, boxes[i].pos.y);
-    //         maxX = Math.max(maxX, boxes[i].pos.x + boxes[i].width);
-    //         maxY = Math.max(maxY, boxes[i].pos.y + boxes[i].height);
-    //     }
-    //     return new Rect(vec2(minX, minY), maxX - minX, maxY - minY);
-    // }
+    bbox_union(): Rect {
+        let minX = Number.MAX_VALUE, minY = Number.MAX_VALUE, maxX = Number.MIN_VALUE, maxY = Number.MIN_VALUE;
+        const boxes = setMapToArray(this.objects, x => x.aabb());
+        boxes.push(...this.nodes.map(x => x.bbox_union()));
+        for (let i = 0; i < boxes.length; i++) {
+            minX = Math.min(minX, boxes[i].pos.x);
+            minY = Math.min(minY, boxes[i].pos.y);
+            maxX = Math.max(maxX, boxes[i].pos.x + boxes[i].width);
+            maxY = Math.max(maxY, boxes[i].pos.y + boxes[i].height);
+        }
+        return new Rect(vec2(minX, minY), maxX - minX, maxY - minY);
+    }
+
+    everything(): Set<GameObj<AreaComp>> {
+        let allObjects = this.objects;
+        for (let i = 0; i < this.nodes.length; i++) {
+            const nodeObjects = this.nodes[i].everything();
+            allObjects = allObjects.union(nodeObjects);
+        }
+        return allObjects;
+    }
 
     /**
      * Clears this node and collapses it
@@ -433,4 +435,12 @@ export class Quadtree implements SweepAndPruneLike {
         this.gatherPairs([], pairs);
         yield* pairs;
     }
+}
+
+function setSome<T>(set: Set<T>, pred: (obj: T) => boolean): boolean {
+    return Array.from(set).some(pred);
+}
+
+function setMapToArray<T, U>(set: Set<T>, f: (obj: T) => U): U[] {
+    return Array.from(set).map(f);
 }
