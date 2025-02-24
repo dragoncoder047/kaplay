@@ -8,7 +8,7 @@ enum NodeIndex {
     TL = 1,
     BL = 2,
     BR = 3,
-    NOWHERE = -1,
+    HERE = -1,
 }
 
 /**
@@ -130,7 +130,7 @@ export class Quadtree implements SweepAndPruneLike {
                 return NodeIndex.BR;
             }
         }
-        return NodeIndex.NOWHERE;
+        return NodeIndex.HERE;
     }
 
     /**
@@ -179,12 +179,12 @@ export class Quadtree implements SweepAndPruneLike {
             if (this.nodes.length === 0) {
                 this.subdivide();
                 // Redistribute objects
-                const objects = [...this.objects];
-                this.objects.clear();
+                const objects = this.objects;
+                this.objects = new Set;
                 for (const obj of objects) {
-                    const bbox = obj.screenArea().bbox();
+                    const bbox = obj.worldArea().bbox();
                     const index = this.getQuadrant(bbox);
-                    if (index !== NodeIndex.NOWHERE) {
+                    if (index !== NodeIndex.HERE) {
                         this.nodes[index].insert(obj, bbox);
                     }
                     else {
@@ -198,7 +198,7 @@ export class Quadtree implements SweepAndPruneLike {
         if (this.nodes.length) {
             const index = this.getQuadrant(bbox);
 
-            if (index !== NodeIndex.NOWHERE) {
+            if (index !== NodeIndex.HERE) {
                 this.nodes[index].insert(obj, bbox);
                 return;
             }
@@ -286,7 +286,7 @@ export class Quadtree implements SweepAndPruneLike {
      */
     updateNode(root: Quadtree) {
         for (const obj of this.objects) {
-            const bbox = obj.screenArea().bbox();
+            const bbox = obj.worldArea().bbox();
             // If the object is outside the bounds, remove it and add it to the root
             if (this.isOutside(bbox)) {
                 this.objects.delete(obj);
