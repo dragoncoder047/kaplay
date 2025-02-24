@@ -175,7 +175,7 @@ export class Quadtree implements SweepAndPruneLike {
      */
     insert(obj: GameObj<any>, bbox: Rect): void {
         // If we reached max objects, subdivide and redistribute
-        if (this.objects.size >= this.maxObjects) {
+        if (this.objects.size >= this.maxObjects && this.level < this.maxLevels) {
             if (this.nodes.length === 0) {
                 this.subdivide();
                 // Redistribute objects
