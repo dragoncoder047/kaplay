@@ -864,7 +864,7 @@ const kaplay = <
             case "both": return new SweepAndPruneBoth();
             case "vertical": return new SweepAndPruneVertical();
             case "hashgrid": return new HashGrid(gopt);
-            case "quadtree": return new Quadtree(new Rect(vec2(0), width(), height()), 256, 6);
+            case "quadtree": return new Quadtree(new Rect(vec2(0), width(), height()), gopt.qtMaxObjects, gopt.qtMaxLevels);
             default: return new SweepAndPruneHorizontal();
         }
     })(gopt.sapDirection);

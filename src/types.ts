@@ -6035,6 +6035,8 @@ export interface KAPLAYOpt<
      * @experimental This feature is unstable, it may be removed at any time.
      */
     sapDirection?: "horizontal" | "vertical" | "both" | "hashgrid" | "quadtree";
+    qtMaxObjects?: number;
+    qtMaxLevels?: number;
 }
 
 /**
