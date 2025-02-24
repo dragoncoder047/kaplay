@@ -66,7 +66,7 @@ export class SweepAndPruneHorizontal implements SweepAndPruneLike {
     update() {
         // Update edge data
         for (const [obj, edges] of this.objects.entries()) {
-            const bbox = obj.worldArea().bbox();
+            const bbox = obj.aabb();
             edges[0].x = bbox.pos.x;
             edges[1].x = bbox.pos.x + bbox.width;
         }
@@ -165,7 +165,7 @@ export class SweepAndPruneVertical implements SweepAndPruneLike {
     update() {
         // Update edge data
         for (const [obj, edges] of this.objects.entries()) {
-            const bbox = obj.worldArea().bbox();
+            const bbox = obj.aabb();
             edges[0].y = bbox.pos.y;
             edges[1].y = bbox.pos.y + bbox.height;
         }

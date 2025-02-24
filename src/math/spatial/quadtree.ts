@@ -181,7 +181,7 @@ export class Quadtree implements SweepAndPruneLike {
                 const objects = [...this.objects];
                 this.objects.clear();
                 for (const obj of objects) {
-                    const bbox = obj.screenArea().bbox();
+                    const bbox = obj.aabb();
                     const index = this.getQuadrant(bbox);
                     if (index !== NodeIndex.NOWHERE) {
                         this.nodes[index].insert(obj, bbox);
@@ -285,7 +285,7 @@ export class Quadtree implements SweepAndPruneLike {
      */
     updateNode(root: Quadtree) {
         for (const obj of this.objects) {
-            const bbox = obj.screenArea().bbox();
+            const bbox = obj.aabb();
             // If the object is outside the bounds, remove it and add it to the root
             if (this.isOutside(bbox)) {
                 this.objects.delete(obj);

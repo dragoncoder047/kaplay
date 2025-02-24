@@ -61,7 +61,7 @@ onUpdate(() => {
 });
 
 onDraw("selected", (s) => {
-    const bbox = s.worldArea().bbox();
+    const bbox = s.aabb();
     drawRect({
         pos: bbox.pos.sub(s.pos),
         width: bbox.width,
