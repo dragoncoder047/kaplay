@@ -286,7 +286,7 @@ export class Quadtree implements SweepAndPruneLike {
             && bbox.pos.y >= this.bounds.pos.y
             && bbox.pos.x + bbox.width <= this.bounds.pos.x + this.bounds.width
             && bbox.pos.y + bbox.height
-                <= this.bounds.pos.y + this.bounds.height;
+            <= this.bounds.pos.y + this.bounds.height;
     }
 
     /**
