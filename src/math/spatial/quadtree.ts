@@ -20,8 +20,7 @@ export class Quadtree implements SweepAndPruneLike {
     maxLevels: number;
     level: number;
     nodes: Quadtree[];
-
-    objects: Set<GameObj>;
+    objects: GameObj[];
 
     /**
      * Creates a new quadtree
@@ -41,7 +40,7 @@ export class Quadtree implements SweepAndPruneLike {
         this.maxLevels = maxLevels;
         this.level = level;
         this.nodes = [];
-        this.objects = new Set();
+        this.objects = [];
     }
 
     /**
@@ -83,17 +82,17 @@ export class Quadtree implements SweepAndPruneLike {
      */
     merge() {
         if (this.nodes.length > 0) {
-            let count = this.objects.size;
+            let count = this.objects.length;
             let allLeaves = true;
             for (let i = 0; i < 4; i++) {
                 this.nodes[i].merge();
                 allLeaves &&= this.nodes[i].isLeaf;
-                count += this.nodes[i].objects.size;
+                count += this.nodes[i].objects.length;
             }
 
             if (allLeaves && count <= this.maxObjects) {
                 for (let i = 0; i < 4; i++) {
-                    this.objects = this.objects.union(this.nodes[i].objects);
+                    this.objects.push(...this.nodes[i].objects);
                 }
                 this.nodes = [];
             }
@@ -175,22 +174,23 @@ export class Quadtree implements SweepAndPruneLike {
      */
     insert(obj: GameObj<any>, bbox: Rect): void {
         // If we reached max objects, subdivide and redistribute
-        if (this.objects.size >= this.maxObjects && this.level < this.maxLevels) {
+        if (this.objects.length >= this.maxObjects) {
             if (this.nodes.length === 0) {
                 this.subdivide();
                 // Redistribute objects
-                const objects = this.objects;
-                this.objects = new Set;
-                for (const obj of objects) {
-                    const bbox = obj.worldArea().bbox();
+                let j = 0;
+                for (let i = 0; i < this.objects.length; i++) {
+                    const obj = this.objects[i];
+                    const bbox = obj.screenArea().bbox();
                     const index = this.getQuadrant(bbox);
                     if (index !== NodeIndex.HERE) {
                         this.nodes[index].insert(obj, bbox);
                     }
                     else {
-                        this.objects.add(obj);
+                        this.objects[j++] = obj;
                     }
                 }
+                this.objects.length = j;
             }
         }
 
@@ -204,7 +204,7 @@ export class Quadtree implements SweepAndPruneLike {
             }
         }
 
-        this.objects.add(obj);
+        this.objects.push(obj);
     }
 
     add(obj: GameObj<AreaComp>): void {
@@ -216,28 +216,26 @@ export class Quadtree implements SweepAndPruneLike {
      * @param rect The rect to test with
      * @returns A set of objects potentially intersecting the rectangle
      */
-    retrieve(rect: Rect): Set<GameObj> {
-        let retrievedObjects = this.objects;
+    retrieve(rect: Rect, objects: GameObj[]): void {
+        objects.push(...this.objects);
 
         if (this.nodes.length) {
             const indices = this.getQuadrants(rect);
-            for (var i = 0; i < indices.length; i++) {
-                retrievedObjects = retrievedObjects.union(
-                    this.nodes[indices[i]].retrieve(rect),
-                );
+            for (let i = 0; i < indices.length; i++) {
+                this.nodes[indices[i]].retrieve(rect, objects);
             }
         }
-
-        return retrievedObjects;
     }
 
-    /** 
+    /**
      * Removes the object
      * @param obj The object to remove
      * @param fast No node collapse if true
      */
     remove(obj: GameObj<any>, fast = false): boolean {
-        if (this.objects.delete(obj)) {
+        let index = this.objects.indexOf(obj);
+        if (index != -1) {
+            this.objects.splice(index, 1);
             if (!fast) {
                 this.merge();
             }
@@ -256,21 +254,20 @@ export class Quadtree implements SweepAndPruneLike {
         return false;
     }
 
-    /** 
+    /**
      * Updates a single object
      * Note that no testing is done here. Make sure the object needs to be actually updated.
      * @param root The tree root, since insertion happens from the root
      * @param obj The object to update
      * @param bbox The new bounding box
-     * 
      */
     updateObject(root: Quadtree, obj: GameObj<any>, bbox: Rect): void {
         this.remove(obj);
         root.insert(obj, bbox);
     }
 
-    /** 
-     * True if the rectangle is outside this node's bounds
+    /**
+     * True if the rectangle is completely outside this node's bounds
      * @param bbox The bounding box to test
      */
     isOutside(bbox: Rect) {
@@ -281,29 +278,47 @@ export class Quadtree implements SweepAndPruneLike {
     }
 
     /**
+     * True if the rectangle is completely outside this node's bounds
+     * @param bbox The bounding box to test
+     */
+    isInside(bbox: Rect) {
+        return bbox.pos.x >= this.bounds.pos.x
+            && bbox.pos.y >= this.bounds.pos.y
+            && bbox.pos.x + bbox.width <= this.bounds.pos.x + this.bounds.width
+            && bbox.pos.y + bbox.height
+                <= this.bounds.pos.y + this.bounds.height;
+    }
+
+    /**
      * Updates all objects in this node and the objects of its children
      * @param root The tree root, since insertion happens from the root
      */
-    updateNode(root: Quadtree) {
-        for (const obj of this.objects) {
+    updateNode(orphans: [GameObj, Rect][]) {
+        let i = 0;
+        while (i < this.objects.length) {
+            const obj = this.objects[i];
             const bbox = obj.worldArea().bbox();
-            // If the object is outside the bounds, remove it and add it to the root
-            if (this.isOutside(bbox)) {
-                this.objects.delete(obj);
-                root.insert(obj, bbox);
+            // If the object is outside the bounds, remove it and add it to the root later
+            if (!this.isInside(bbox)) {
+                orphans.push([obj, bbox]);
+                this.objects.splice(i, 1);
+                continue; // Don't increase i, the object at i was removed
             }
             else if (this.nodes.length > 0) {
                 // If the object fits in a quadrant, remove it and add it to the quadrant
                 const index = this.getQuadrant(bbox);
                 if (index !== -1) {
                     // Use fast without merge, since it may remove the quadrant we are going to add it to
-                    this.objects.delete(obj);
                     this.nodes[index].insert(obj, bbox);
+                    this.objects.splice(i, 1);
+                    continue; // Don't increase i, the object at i was removed
                 }
             }
+            i++;
         }
+        // Update sub quadrants
         for (let i = 0; i < this.nodes.length; i++) {
-            this.nodes[i].updateNode(root);
+            this.nodes[i].updateNode(orphans);
         }
     }
 
@@ -311,14 +326,19 @@ export class Quadtree implements SweepAndPruneLike {
      * Update this tree
      */
     update() {
-        this.updateNode(this);
+        const orphans: [GameObj, Rect][] = [];
+        this.updateNode(orphans);
+        // Reinsert all objects that were removed because they went outside the bounds of their quadrant
+        for (let i = 0; i < orphans.length; i++) {
+            this.insert(orphans[i][0], orphans[i][1]);
+        }
     }
 
     /**
      * Clears this node and collapses it
      */
     clear() {
-        this.objects.clear();
+        this.objects.length = 0;
 
         // Do we need this? It only makes sense if someone is still holding a reference to a node
         for (var i = 0; i < this.nodes.length; i++) {
@@ -340,26 +360,25 @@ export class Quadtree implements SweepAndPruneLike {
         pairs: Array<[GameObj, GameObj]>,
     ) {
         // The objects in this node potentially collide with each other
-        const objects = [...this.objects];
-        for (let i = 0; i < objects.length; i++) {
+        for (let i = 0; i < this.objects.length; i++) {
             // Note that we don't create doubles, since j = i + 1
-            for (let j = i + 1; j < objects.length; j++) {
-                pairs.push([objects[i], objects[j]]);
+            for (let j = i + 1; j < this.objects.length; j++) {
+                pairs.push([this.objects[i], this.objects[j]]);
             }
         }
 
         // The objects in this node potentially collide with ancestor objects
-        for (let i = 0; i < objects.length; i++) {
+        for (let i = 0; i < this.objects.length; i++) {
             // Note that we don't create doubles, since the lists are disjoint
             for (let j = 0; j < ancestorObjects.length; j++) {
-                pairs.push([objects[i], ancestorObjects[j]]);
+                pairs.push([this.objects[i], ancestorObjects[j]]);
             }
         }
 
         // Check child nodes if any
         if (this.nodes.length) {
             // Add the local objects to the ancestors
-            ancestorObjects = ancestorObjects.concat(objects);
+            ancestorObjects = ancestorObjects.concat(this.objects);
             for (let i = 0; i < this.nodes.length; i++) {
                 this.nodes[i].gatherPairs(ancestorObjects, pairs);
             }
@@ -369,8 +388,8 @@ export class Quadtree implements SweepAndPruneLike {
     *[Symbol.iterator](): Generator<[GameObj<AreaComp>, GameObj<AreaComp>], void, void> {
         const pairs: Array<[GameObj<AreaComp>, GameObj<AreaComp>]> = [];
         this.gatherPairs([], pairs);
-        for (const pair of pairs) {
-            yield pair;
+        for (let i = 0; i < pairs.length; i++) {
+            yield pairs[i];
         }
     }
 }
