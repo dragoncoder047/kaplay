@@ -174,14 +174,14 @@ export class Quadtree implements SweepAndPruneLike {
      */
     insert(obj: GameObj<any>, bbox: Rect): void {
         // If we reached max objects, subdivide and redistribute
-        if (this.objects.length >= this.maxObjects) {
+        if (this.objects.length >= this.maxObjects && this.level < this.maxLevels) {
             if (this.nodes.length === 0) {
                 this.subdivide();
                 // Redistribute objects
                 let j = 0;
                 for (let i = 0; i < this.objects.length; i++) {
                     const obj = this.objects[i];
-                    const bbox = obj.screenArea().bbox();
+                    const bbox = obj.worldArea().bbox();
                     const index = this.getQuadrant(bbox);
                     if (index !== NodeIndex.HERE) {
                         this.nodes[index].insert(obj, bbox);
