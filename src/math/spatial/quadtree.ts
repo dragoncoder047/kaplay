@@ -99,6 +99,10 @@ export class Quadtree implements SweepAndPruneLike {
         }
     }
 
+    clean(): void {
+        this.merge();
+    }
+
     /**
      * Returns the quadrant this rect fits in or -1 if it doesn't fit any quadrant
      * @param rect The rect to test with.

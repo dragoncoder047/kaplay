@@ -6,6 +6,7 @@ export interface SweepAndPruneLike {
     remove(obj: GameObj<AreaComp>): void;
     clear(): void;
     update(): void;
+    clean?(): void;
     [Symbol.iterator](): Generator<[GameObj<AreaComp>, GameObj<AreaComp>], void, void>;
 }
 

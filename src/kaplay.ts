@@ -851,21 +851,9 @@ const kaplay = <
         return true;
     }
 
-    const sap: SweepAndPruneLike = ((hgt) => {
-        switch (hgt) {
-            case "both": return new SweepAndPruneBoth();
-            case "vertical": return new SweepAndPruneVertical();
-            case "hashgrid": return new HashGrid(gopt);
-            case "quadtree": return new Quadtree(new Rect(vec2(0), width(), height()), gopt.qtMaxObjects, gopt.qtMaxLevels);
-            default: return new SweepAndPruneHorizontal();
-        }
-    })(gopt.sapDirection);
+    let sap: SweepAndPruneLike = undefined as any;
     let sapInit = false;
     function broadPhase() {
-        if (!usesArea()) {
-            return;
-        }
-
         if (!sapInit) {
             sapInit = true;
             onAdd(obj => {
@@ -901,6 +889,25 @@ const kaplay = <
         for (const [obj1, obj2] of sap) {
             narrowPhase(obj1, obj2);
         }
+    }
+
+    function switchBroadPhaseAlgo(algo: KAPLAYOpt["sapDirection"]) {
+        if (sap) sap.clear();
+        sap = (() => {
+            switch (algo) {
+                case "both": return new SweepAndPruneBoth();
+                case "vertical": return new SweepAndPruneVertical();
+                case "hashgrid": return new HashGrid(gopt);
+                case "quadtree": return new Quadtree(new Rect(vec2(0), width(), height()), gopt.qtMaxObjects, gopt.qtMaxLevels);
+                default: return new SweepAndPruneHorizontal();
+            }
+        })();
+        sapInit = false;
+    }
+    switchBroadPhaseAlgo(gopt.sapDirection);
+
+    function cleanBroadPhase() {
+        if (sap && sap.clean) sap.clean();
     }
 
     function checkFrame() {
@@ -1466,6 +1473,8 @@ const kaplay = <
         KEventController,
         cancel: () => EVENT_CANCEL_SYMBOL,
         BlendMode,
+        switchBroadPhaseAlgo,
+        cleanBroadPhase
     };
 
     _k.k = ctx;

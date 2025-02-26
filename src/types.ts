@@ -5684,6 +5684,8 @@ export interface KAPLAYCtx<
      * @group Info
      */
     VERSION: string;
+    switchBroadPhaseAlgo(which: KAPLAYOpt["sapDirection"]): void;
+    cleanBroadPhase(): void;
 }
 
 export type Tag = string;
