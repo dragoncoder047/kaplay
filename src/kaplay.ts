@@ -834,6 +834,8 @@ const kaplay = <
     ): boolean {
         if (other.paused) return false;
         if (!other.exists()) return false;
+        if (obj.paused) return false;
+        if (!obj.exists()) return false;
         if (!obj.collisionIgnore.isDisjointFrom(other.tagsAsSet)) return false;
         if (!other.collisionIgnore.isDisjointFrom(obj.tagsAsSet)) return false;
         const res = gjkShapeIntersection(
