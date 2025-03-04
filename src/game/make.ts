@@ -173,7 +173,6 @@ export function make<T>(comps: CompList<T> = []): GameObj<T> {
             }
             obj.parent = this;
             obj.dirtyFlags = AllDirty;
-            this.children.push(obj);
             // TODO: trigger add for children
             obj.trigger("add", obj);
             _k.game.events.trigger("add", obj);
