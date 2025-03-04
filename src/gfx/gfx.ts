@@ -188,7 +188,7 @@ export class BatchRenderer {
             || blend !== this.curBlend
             || fixed !== this.curFixed
             || this.vqueue.length + verts.length * this.stride
-            > this.maxVertices
+                > this.maxVertices
             || this.iqueue.length + indices.length > this.maxIndices
         ) {
             this.flush(width, height);
@@ -234,7 +234,7 @@ export class BatchRenderer {
                             gl.DST_COLOR,
                             gl.ONE_MINUS_SRC_ALPHA,
                             gl.ONE,
-                            gl.ONE_MINUS_SRC_ALPHA
+                            gl.ONE_MINUS_SRC_ALPHA,
                         );
                 }
             }
@@ -294,7 +294,7 @@ export class BatchRenderer {
         this.curShader.send({
             width,
             height,
-            camera: this.curFixed ? fixedCameraMatrix : getCamTransform()
+            camera: this.curFixed ? fixedCameraMatrix : getCamTransform(),
         });
 
         // Bind texture

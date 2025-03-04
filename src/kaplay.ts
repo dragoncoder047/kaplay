@@ -236,7 +236,6 @@ import {
     z,
 } from "./components";
 
-import { dt, fixedDt, restDt } from "./app";
 import { burp, getVolume, initAudio, play, setVolume, volume } from "./audio";
 
 import {
@@ -602,7 +601,12 @@ const kaplay = <
 
     const debug: Debug = {
         inspect: false,
-        timeScale: 1,
+        set timeScale(timeScale: number) {
+            app.state.timeScale = timeScale;
+        },
+        get timeScale() {
+            return app.state.timeScale;
+        },
         showLog: true,
         fps: () => app.fps(),
         numFrames: () => app.numFrames(),
@@ -1150,9 +1154,9 @@ const kaplay = <
         width,
         height,
         center,
-        dt,
-        fixedDt,
-        restDt,
+        dt: app.dt,
+        fixedDt: app.fixedDt,
+        restDt: app.restDt,
         time: app.time,
         screenshot: app.screenshot,
         record,

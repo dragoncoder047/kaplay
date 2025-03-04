@@ -125,8 +125,8 @@ export class Vec2 {
         return Math.abs(this.x) > Math.abs(this.y)
             ? this.x < 0 ? Vec2.LEFT : Vec2.RIGHT
             : this.y < 0
-                ? Vec2.UP
-                : Vec2.DOWN;
+            ? Vec2.UP
+            : Vec2.DOWN;
     }
 
     /** Clone the vector */
@@ -1400,7 +1400,7 @@ export class Mat4 {
             const r = Math.sqrt(this.m[0] * this.m[0] + this.m[1] * this.m[1]);
             return new Vec2(
                 Math.atan(this.m[0] * this.m[4] + this.m[1] * this.m[5])
-                / (r * r),
+                    / (r * r),
                 0,
             );
         }
@@ -1409,7 +1409,7 @@ export class Mat4 {
             return new Vec2(
                 0,
                 Math.atan(this.m[0] * this.m[4] + this.m[1] * this.m[5])
-                / (s * s),
+                    / (s * s),
             );
         }
         else {
@@ -1948,7 +1948,7 @@ export function testPolygonPoint(poly: Polygon, pt: Vec2): boolean {
             ((p[i].y > pt.y) != (p[j].y > pt.y))
             && (pt.x
                 < (p[j].x - p[i].x) * (pt.y - p[i].y) / (p[j].y - p[i].y)
-                + p[i].x)
+                    + p[i].x)
         ) {
             c = !c;
         }
@@ -1966,7 +1966,7 @@ export function testEllipsePoint(ellipse: Ellipse, pt: Vec2): boolean {
     const vx = pt.x * c + pt.y * s;
     const vy = -pt.x * s + pt.y * c;
     return vx * vx / (ellipse.radiusX * ellipse.radiusX)
-        + vy * vy / (ellipse.radiusY * ellipse.radiusY) < 1;
+            + vy * vy / (ellipse.radiusY * ellipse.radiusY) < 1;
 }
 
 export function testEllipseCircle(ellipse: Ellipse, circle: Circle): boolean {
@@ -2921,7 +2921,7 @@ export class Ellipse {
         const vx = point.x * c + point.y * s;
         const vy = -point.x * s + point.y * c;
         return vx * vx / (this.radiusX * this.radiusX)
-            + vy * vy / (this.radiusY * this.radiusY) < 1;
+                + vy * vy / (this.radiusY * this.radiusY) < 1;
     }
     raycast(origin: Vec2, direction: Vec2): RaycastResult {
         return raycastEllipse(origin, direction, this);
@@ -2999,7 +2999,12 @@ export class Polygon {
          */
         return vec2();
     }
-    cut(a: Vec2, b: Vec2): [Polygon | null, Polygon | null] {
+    cut(
+        a: Vec2,
+        b: Vec2,
+        srcUv?: Vec2[],
+        dstUv?: [Vec2[], Vec2[]],
+    ): [Polygon | null, Polygon | null] {
         const surfaceLine = new Line(a, b);
         const left: Array<Vec2> = [];
         const right: Array<Vec2> = [];
@@ -3007,17 +3012,31 @@ export class Polygon {
         let prev = this.pts[this.pts.length - 1];
         let ap = prev.sub(a);
         let wasLeft = ab.cross(ap) > 0;
-        this.pts.forEach(p => {
+        this.pts.forEach((p, index) => {
             ap = p.sub(a);
             const isLeft = ab.cross(ap) > 0;
             if (wasLeft != isLeft) {
                 // Since the points are on opposite sides of the line, we know they intersect
-                const intersection = segmentLineIntersection(prev, p, a, b);
-                left.push(intersection!);
-                right.push(intersection!);
+                const intersection = segmentLineIntersection(prev, p, a, b)!;
+                left.push(intersection);
+                right.push(intersection);
+                if (srcUv && dstUv) {
+                    const uv1 =
+                        srcUv[index === 0 ? srcUv.length - 1 : index - 1];
+                    const uv2 = srcUv[index];
+                    const ab = p.sub(prev);
+                    const ac = intersection.sub(prev);
+                    const alpha = ac.dot(ab) / ab.dot(ab);
+                    const uv = lerp(uv1, uv2, alpha);
+                    dstUv[0].push(uv);
+                    dstUv[1].push(uv);
+                }
                 wasLeft = isLeft;
             }
             (isLeft ? left : right).push(p);
+            if (srcUv && dstUv) {
+                (isLeft ? dstUv[0] : dstUv[1]).push(srcUv[index]);
+            }
             prev = p;
         });
         return [
@@ -3320,21 +3339,21 @@ export function kochanekBartels(
     const hx = h(
         pt2.x,
         0.5 * (1 - tension) * (1 + bias) * (1 + continuity) * (pt2.x - pt1.x)
-        + 0.5 * (1 - tension) * (1 - bias) * (1 - continuity)
-        * (pt3.x - pt2.x),
+            + 0.5 * (1 - tension) * (1 - bias) * (1 - continuity)
+                * (pt3.x - pt2.x),
         0.5 * (1 - tension) * (1 + bias) * (1 - continuity) * (pt3.x - pt2.x)
-        + 0.5 * (1 - tension) * (1 - bias) * (1 + continuity)
-        * (pt4.x - pt3.x),
+            + 0.5 * (1 - tension) * (1 - bias) * (1 + continuity)
+                * (pt4.x - pt3.x),
         pt3.x,
     );
     const hy = h(
         pt2.y,
         0.5 * (1 - tension) * (1 + bias) * (1 + continuity) * (pt2.y - pt1.y)
-        + 0.5 * (1 - tension) * (1 - bias) * (1 - continuity)
-        * (pt3.y - pt2.y),
+            + 0.5 * (1 - tension) * (1 - bias) * (1 - continuity)
+                * (pt3.y - pt2.y),
         0.5 * (1 - tension) * (1 + bias) * (1 - continuity) * (pt3.y - pt2.y)
-        + 0.5 * (1 - tension) * (1 - bias) * (1 + continuity)
-        * (pt4.y - pt3.y),
+            + 0.5 * (1 - tension) * (1 - bias) * (1 + continuity)
+                * (pt4.y - pt3.y),
         pt3.y,
     );
     return (t: number) => {
