@@ -110,9 +110,11 @@ export type {
     Game,
     GameObjEventMap,
     GameObjEventNames,
+    KeepFlags,
     LevelOpt,
     SceneDef,
     SceneName,
+    SetParentOpt,
     TupleWithoutFirst,
 } from "./game";
 export type {

@@ -16,7 +16,6 @@ import {
     pushTranslateV,
 } from "../gfx";
 import { _k } from "../kaplay";
-import { calcTransform } from "../math";
 import { Mat23 } from "../math/math";
 import { calcLocalTransform, calcWorldTransform } from "../math/various";
 import {
@@ -69,6 +68,7 @@ export function make<T>(comps: CompList<T> = []): GameObj<T> {
     let localTransform: Mat23 = new Mat23();
     let worldTransform: Mat23 = new Mat23();
     let parentTransform: Mat23 = new Mat23();
+    let _parent: GameObj;
 
     // the game object without the event methods, added later
     const obj: Omit<GameObj, keyof typeof evs> = {
@@ -77,8 +77,6 @@ export function make<T>(comps: CompList<T> = []): GameObj<T> {
         hidden: false,
         // transform: new Mat4(),
         children: [],
-
-        parent: undefined,
 
         dirtyFlags: AllDirty,
 
@@ -106,6 +104,42 @@ export function make<T>(comps: CompList<T> = []): GameObj<T> {
             }
 
             return worldTransform;
+        },
+
+        get parent() {
+            return _parent!;
+        },
+
+        set parent(p: GameObj) {
+            if (_parent === p) return;
+            const index = _parent
+                ? _parent.children.indexOf(this as GameObj)
+                : -1;
+            if (index !== -1) {
+                _parent.children.splice(index, 1);
+            }
+            _parent = p;
+            p.children.push(this as GameObj);
+        },
+
+        setParent(p: GameObj, opt: SetParentOpt) {
+            if (_parent === p) return;
+            const oldTransform = _parent.transform;
+            const newTransform = p.transform;
+            if ((opt.keep & KeepFlags.Pos) && this.pos !== undefined) {
+                oldTransform.transformPoint(this.pos, this.pos);
+                newTransform.inverse.transformPoint(this.pos, this.pos);
+            }
+            if ((opt.keep & KeepFlags.Angle) && this.angle !== undefined) {
+                this.angle += newTransform.getRotation()
+                    - oldTransform.getRotation();
+            }
+            if ((opt.keep & KeepFlags.Scale) && this.scale !== undefined) {
+                this.scale = this.scale.scale(
+                    oldTransform.getScale().invScale(newTransform.getScale()),
+                );
+            }
+            this.parent = p;
         },
 
         set paused(p) {
