@@ -126,8 +126,8 @@ export function make<T>(comps: CompList<T> = []): GameObj<T> {
 
         setParent(p: GameObj, opt: SetParentOpt) {
             if (_parent === p) return;
-            const oldTransform = _parent.localTransform;
-            const newTransform = p.localTransform;
+            const oldTransform = _parent.worldTransform;
+            const newTransform = p.worldTransform;
             if ((opt.keep & KeepFlags.Pos) && this.pos !== undefined) {
                 oldTransform.transformPoint(this.pos, this.pos);
                 newTransform.inverse.transformPoint(this.pos, this.pos);
