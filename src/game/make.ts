@@ -126,6 +126,8 @@ export function make<T>(comps: CompList<T> = []): GameObj<T> {
 
         setParent(p: GameObj, opt: SetParentOpt) {
             if (_parent === p) return;
+            calcWorldTransform(_parent, this.worldTransform);
+            calcWorldTransform(p, this.worldTransform);
             const oldTransform = _parent.worldTransform;
             const newTransform = p.worldTransform;
             if ((opt.keep & KeepFlags.Pos) && this.pos !== undefined) {
