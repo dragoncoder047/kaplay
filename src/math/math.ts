@@ -2696,15 +2696,9 @@ export class Rect {
         ];
     }
     transform(m: Mat23): Rect | Polygon {
-        if (m.hasRotationOrSkew) {
-            return new Polygon(
-                this.points().map((pt) => m.transformPoint(pt, vec2())),
-            );
-        }
-        else {
-            const scale = m.getScale();
-            return new Rect(this.pos.add(m.getTranslation()), this.width * scale.x, this.height * scale.y);
-        }
+        return new Polygon(
+            this.points().map((pt) => m.transformPoint(pt, vec2())),
+        );
     }
     bbox(): Rect {
         return this.clone();
