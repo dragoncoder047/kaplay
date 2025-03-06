@@ -86,6 +86,8 @@ class PolygonCollider implements Collider {
             }
         }
 
+        if (!maxPoint) throw new Error("PolygonCollider support() failed");
+
         return maxPoint!;
     }
 }
