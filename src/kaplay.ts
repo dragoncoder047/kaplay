@@ -321,6 +321,7 @@ export const _k = {
     gscale: null,
     kaSprite: null,
     boomSprite: null,
+    handleErr: null,
     systems: [], // all systems added
     // we allocate systems
     systemsByEvent: [
@@ -332,6 +333,9 @@ export const _k = {
         [], // beforeUpdate
     ],
 } as unknown as KAPLAYInternal;
+
+// If KAPLAY crashed
+let crashed = false;
 
 /**
  * Initialize KAPLAY context. The starting point of all KAPLAY games.
@@ -773,7 +777,6 @@ const kaplay = <
     }
 
     function updateFrame() {
-        // update every obj
         game.root.update();
     }
 
@@ -926,15 +929,20 @@ const kaplay = <
     }
 
     function handleErr(err: Error) {
+        if (crashed) return;
+        crashed = true;
         console.error(err);
         audio.ctx.suspend();
         const errorMessage = err.message ?? String(err)
             ?? "Unknown error, check console for more info";
+        let errorScreen = false;
 
-        // TODO: this should only run once
         app.run(
             () => { },
             () => {
+                if (errorScreen) return;
+                errorScreen = true;
+
                 frameStart();
 
                 drawUnscaled(() => {
@@ -984,6 +992,8 @@ const kaplay = <
             },
         );
     }
+
+    _k.handleErr = handleErr;
 
     function onCleanup(action: () => void) {
         gc.push(action);
@@ -1081,6 +1091,7 @@ const kaplay = <
                         ) {
                             sys.run();
                         }
+
                         updateFrame();
 
                         for (

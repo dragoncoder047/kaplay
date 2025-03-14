@@ -165,6 +165,7 @@ export type KAPLAYInternal = {
     boomSprite: Asset<SpriteData>;
     systems: System[];
     systemsByEvent: System[][];
+    handleErr: (e: any) => void;
 };
 
 /**
@@ -2882,7 +2883,7 @@ export interface KAPLAYCtx<
         url: string,
     ): Asset<Record<string, SpriteData>>;
     /**
-     * Load a sprite with aseprite spritesheet json (should use "array" in the export options).
+     * Load a sprite with aseprite spritesheet json (should use "array" in the export options and have tags enabled, that way kaplay can load tagged frames as animations).
      *
      * @param name - The asset name.
      * @param imgSrc - The image resource url.
@@ -5026,7 +5027,7 @@ export interface KAPLAYCtx<
      * @since v2000.0
      * @group Level
      */
-    addLevel(map: string[], opt: LevelOpt): GameObj;
+    addLevel(map: string[], opt: LevelOpt): GameObj<PosComp | LevelComp>;
     /**
      * Get data from local storage, if not present can set to a default value.
      *
