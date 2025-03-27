@@ -1,5 +1,6 @@
 import type { Shader, Uniform } from "../assets";
 import { getCamTransform } from "../game";
+import { Picture } from "../gfx/draw/drawPicture";
 import { Mat23, Mat4 } from "../math";
 import {
     BlendMode,
@@ -112,7 +113,7 @@ export type VertexFormat = {
     size: number;
 }[];
 
-const fixedCameraMatrix = new Mat4();
+const identityMatrix = new Mat4();
 
 export class BatchRenderer {
     ctx: GfxCtx;
@@ -134,6 +135,8 @@ export class BatchRenderer {
     curUniform: Uniform | null = null;
     curBlend: BlendMode = BlendMode.Normal;
     curFixed: boolean | undefined = undefined;
+
+    picture: Picture | null = null;
 
     constructor(
         ctx: GfxCtx,
@@ -169,7 +172,7 @@ export class BatchRenderer {
 
     push(
         primitive: GLenum,
-        verts: number[],
+        vertices: number[],
         indices: number[],
         shader: Shader,
         tex: Texture | null = null,
@@ -179,6 +182,50 @@ export class BatchRenderer {
         height: number,
         fixed: boolean,
     ) {
+        // If we have a picture, redirect data to the picture instead
+        if (this.picture) {
+            const index = this.picture.indices.length;
+            const count = indices.length;
+            const indexOffset = this.picture.vertices.length / this.stride;
+            let l = vertices.length;
+            for (let i = 0; i < l; i++) {
+                this.picture.vertices.push(vertices[i]);
+            }
+            l = indices.length;
+            for (let i = 0; i < l; i++) {
+                this.picture.indices.push(indices[i] + indexOffset);
+            }
+            const material = {
+                tex: tex || undefined,
+                shader,
+                uniform: uniform || undefined,
+                blend,
+            };
+            if (this.picture.commands.length) {
+                const lastCommand =
+                    this.picture.commands[this.picture.commands.length - 1];
+                const lastMaterial = lastCommand.material;
+                if (
+                    lastMaterial.tex == material.tex
+                    && lastMaterial.shader == material.shader
+                    && lastMaterial.uniform == material.uniform
+                    && lastMaterial.blend == material.blend
+                ) {
+                    lastCommand.count += count;
+                    return;
+                }
+            }
+            const command = {
+                material,
+                index,
+                count,
+            };
+            this.picture.commands.push(command);
+            return;
+        }
+
+        // If texture, shader, blend mode or uniforms (including fixed) have changed, flush first
+        // If the buffers are full, flush first
         if (
             primitive !== this.curPrimitive
             || tex !== this.curTex
@@ -187,62 +234,17 @@ export class BatchRenderer {
                 && !deepEq(this.curUniform, uniform))
             || blend !== this.curBlend
             || fixed !== this.curFixed
-            || this.vqueue.length + verts.length * this.stride
+            || this.vqueue.length + vertices.length * this.stride
                 > this.maxVertices
             || this.iqueue.length + indices.length > this.maxIndices
         ) {
             this.flush(width, height);
-
-            if (blend !== this.curBlend) {
-                const gl = this.ctx.gl;
-                this.curBlend = blend;
-                switch (this.curBlend) {
-                    case BlendMode.Normal:
-                        gl.blendFuncSeparate(
-                            gl.ONE,
-                            gl.ONE_MINUS_SRC_ALPHA,
-                            gl.ONE,
-                            gl.ONE_MINUS_SRC_ALPHA,
-                        );
-                        break;
-                    case BlendMode.Add:
-                        gl.blendFuncSeparate(
-                            gl.ONE,
-                            gl.ONE,
-                            gl.ONE,
-                            gl.ONE_MINUS_SRC_ALPHA,
-                        );
-                        break;
-                    case BlendMode.Multiply:
-                        gl.blendFuncSeparate(
-                            gl.DST_COLOR,
-                            gl.ZERO,
-                            gl.ONE,
-                            gl.ONE_MINUS_SRC_ALPHA,
-                        );
-                        break;
-                    case BlendMode.Screen:
-                        gl.blendFuncSeparate(
-                            gl.ONE_MINUS_DST_COLOR,
-                            gl.ONE,
-                            gl.ONE,
-                            gl.ONE_MINUS_SRC_ALPHA,
-                        );
-                        break;
-                    case BlendMode.Overlay:
-                        gl.blendFuncSeparate(
-                            gl.DST_COLOR,
-                            gl.ONE_MINUS_SRC_ALPHA,
-                            gl.ONE,
-                            gl.ONE_MINUS_SRC_ALPHA,
-                        );
-                }
-            }
+            this.setBlend(blend);
         }
         const indexOffset = this.vqueue.length / this.stride;
-        let l = verts.length;
+        let l = vertices.length;
         for (let i = 0; i < l; i++) {
-            this.vqueue.push(verts[i]);
+            this.vqueue.push(vertices[i]);
         }
         l = indices.length;
         for (let i = 0; i < l; i++) {
@@ -294,7 +296,8 @@ export class BatchRenderer {
         this.curShader.send({
             width,
             height,
-            camera: this.curFixed ? fixedCameraMatrix : getCamTransform(),
+            camera: this.curFixed ? identityMatrix : getCamTransform(),
+            transform: identityMatrix,
         });
 
         // Bind texture
@@ -329,6 +332,54 @@ export class BatchRenderer {
         gl.deleteBuffer(this.glVBuf);
         gl.deleteBuffer(this.glIBuf);
     }
+
+    setBlend(blend: BlendMode) {
+        if (blend !== this.curBlend) {
+            const gl = this.ctx.gl;
+            this.curBlend = blend;
+            switch (this.curBlend) {
+                case BlendMode.Normal:
+                    gl.blendFuncSeparate(
+                        gl.ONE,
+                        gl.ONE_MINUS_SRC_ALPHA,
+                        gl.ONE,
+                        gl.ONE_MINUS_SRC_ALPHA,
+                    );
+                    break;
+                case BlendMode.Add:
+                    gl.blendFuncSeparate(
+                        gl.ONE,
+                        gl.ONE,
+                        gl.ONE,
+                        gl.ONE_MINUS_SRC_ALPHA,
+                    );
+                    break;
+                case BlendMode.Multiply:
+                    gl.blendFuncSeparate(
+                        gl.DST_COLOR,
+                        gl.ZERO,
+                        gl.ONE,
+                        gl.ONE_MINUS_SRC_ALPHA,
+                    );
+                    break;
+                case BlendMode.Screen:
+                    gl.blendFuncSeparate(
+                        gl.ONE_MINUS_DST_COLOR,
+                        gl.ONE,
+                        gl.ONE,
+                        gl.ONE_MINUS_SRC_ALPHA,
+                    );
+                    break;
+                case BlendMode.Overlay:
+                    gl.blendFuncSeparate(
+                        gl.DST_COLOR,
+                        gl.ONE_MINUS_SRC_ALPHA,
+                        gl.ONE,
+                        gl.ONE_MINUS_SRC_ALPHA,
+                    );
+            }
+        }
+    }
 }
 
 export class Mesh {
@@ -341,7 +392,7 @@ export class Mesh {
     constructor(
         ctx: GfxCtx,
         format: VertexFormat,
-        verts: number[],
+        vertices: number[],
         indices: number[],
     ) {
         const gl = ctx.gl;
@@ -354,7 +405,11 @@ export class Mesh {
         this.glVBuf = glVBuf;
 
         ctx.pushArrayBuffer(this.glVBuf);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verts), gl.STATIC_DRAW);
+        gl.bufferData(
+            gl.ARRAY_BUFFER,
+            new Float32Array(vertices),
+            gl.STATIC_DRAW,
+        );
         ctx.popArrayBuffer();
 
         this.glIBuf = gl.createBuffer()!;
@@ -369,16 +424,16 @@ export class Mesh {
         this.count = indices.length;
     }
 
-    draw(primitive?: GLenum) {
+    draw(primitive?: GLenum, index?: GLuint, count?: GLuint): void {
         const gl = this.ctx.gl;
         this.ctx.pushArrayBuffer(this.glVBuf);
         this.ctx.pushElementArrayBuffer(this.glIBuf);
         this.ctx.setVertexFormat(this.vertexFormat);
         gl.drawElements(
             primitive ?? gl.TRIANGLES,
-            this.count,
+            index ?? this.count,
             gl.UNSIGNED_SHORT,
-            0,
+            count ?? 0,
         );
         this.ctx.popArrayBuffer();
         this.ctx.popElementArrayBuffer();
@@ -428,6 +483,7 @@ export function initGfx(gl: WebGLRenderingContext, opts: {
         curVertexFormat = fmt;
         const stride = fmt.reduce((sum, f) => sum + f.size, 0);
         fmt.reduce((offset, f, i) => {
+            gl.enableVertexAttribArray(i);
             gl.vertexAttribPointer(
                 i,
                 f.size,
@@ -436,7 +492,6 @@ export function initGfx(gl: WebGLRenderingContext, opts: {
                 stride * 4,
                 offset,
             );
-            gl.enableVertexAttribArray(i);
             return offset + f.size * 4;
         }, 0);
     }

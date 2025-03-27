@@ -86,6 +86,8 @@ import type {
     TileCompOpt,
     TimerComp,
     UVQuadComp,
+    VideoComp,
+    VideoCompOpt,
     ZComp,
 } from "./components/";
 import type { EllipseComp } from "./components/draw/ellipse";
@@ -94,6 +96,7 @@ import type {
     ParticlesComp,
     ParticlesOpt,
 } from "./components/draw/particles";
+import type { PictureComp } from "./components/draw/picture";
 import type {
     BoomOpt,
     Game,
@@ -110,6 +113,7 @@ import type { LCEvents, System } from "./game/systems";
 import type {
     AppGfxCtx,
     DrawBezierOpt,
+    DrawCanvasOpt,
     DrawCircleOpt,
     DrawCurveOpt,
     DrawLineOpt,
@@ -124,6 +128,7 @@ import type {
     LineJoin,
     Texture,
 } from "./gfx";
+import type { DrawPictureOpt, Picture } from "./gfx/draw/drawPicture";
 import type { GjkCollisionResult } from "./math";
 import type { Color, CSSColor, RGBAValue, RGBValue } from "./math/color";
 import type {
@@ -169,7 +174,10 @@ export type KAPLAYInternal = {
 };
 
 /**
- * Context handle that contains every kaboom function.
+ * Context handle that contains every KAPLAY function.
+ *
+ * @template TButtonDef - The button map
+ * @template TButton - The button type
  *
  * @group Start
  */
@@ -225,37 +233,11 @@ export interface KAPLAYCtx<
      * });
      * ```
     *
-    * @param comps - List of components to add to the game object, or a game object made with {@link make `make()`}.
+    * @param comps - List of components to add to the game object.
     * @returns The added game object that contains all properties and methods each component offers.
     * @group Game Obj
     */
-    add<T>(comps?: CompList<T> | GameObj<T>): GameObj<T>;
-    /**
-     * Create a game object like add(), but not adding to the scene.
-     *
-     * @param comps - List of components to add to the game object.
-     *
-     * @example
-     * ```js
-     * const label = make([
-     *     rect(100, 20),
-     * ]);
-     *
-     * // Add a new text to the label
-     * label.add([
-     *     text("Hello, world!"),
-     * ]);
-     *
-     * // Add game object to the scene
-     * // Now it will render
-     * add(label);
-     * ```
-     *
-     * @returns The created game object that contains all properties and methods each component offers.
-     * @since v3000.1
-     * @group Game Obj
-     */
-    make<T>(comps?: CompList<T>): GameObj<T>;
+    add<const T extends CompList<unknown>>(comps?: T): GameObj<T[number]>;
     /**
      * Remove and re-add the game obj, without triggering add / destroy events.
      *
@@ -714,6 +696,27 @@ export interface KAPLAYCtx<
      * @group Components
      */
     uvquad(w: number, h: number): UVQuadComp;
+    /**
+     * Draws a video.
+     *
+     * @param url The video to play. Needs to be on the same webserver due to CORS.
+     * @param opt The video component options
+     *
+     * @returns The video comp.
+     * @since v4000.0
+     * @group Components
+     */
+    video(url: string, opt?: VideoCompOpt): VideoComp;
+    /**
+     * Draws a picture.
+     *
+     * @param picture The picture to draw.
+     *
+     * @returns The picture comp.
+     * @since v4000.0
+     * @group Components
+     */
+    picture(picture: Picture): PictureComp;
     /**
      * Attach a collider area from shape and enables collision detection in a Game Object.
      *
@@ -5312,6 +5315,31 @@ export interface KAPLAYCtx<
      */
     drawSubtracted(content: () => void, mask: () => void): void;
     /**
+     * A picture holding drawing data
+     */
+    Picture: typeof Picture;
+    /**
+     * Selects the picture for drawing, erases existing data.
+     * @param picture The picture to write drawing data to.
+     */
+    beginPicture(picture?: Picture): void;
+    /**
+     * Selects the picture for drawing, keeps existing data.
+     * @param picture The picture to write drawing data to.
+     */
+    appendToPicture(picture?: Picture): void;
+    /**
+     * Deselects the current picture for drawing, returning the picture.
+     * @returns The picture which was previously selected.
+     */
+    endPicture(): Picture;
+    /**
+     * Draws a picture to the screen. This function can not be used to draw recursively to a picture.
+     * @param picture The picture to draw
+     * @param opt Drawing options
+     */
+    drawPicture(picture: Picture, opt: DrawPictureOpt): void;
+    /**
      * Push current transform matrix to the transform stack.
      *
      * @example
@@ -5429,6 +5457,15 @@ export interface KAPLAYCtx<
      * @group Draw
      */
     makeCanvas(w: number, h: number): Canvas;
+    /**
+     * Draw a canvas.
+     *
+     * @param opt The canvas object.
+     *
+     * @since v4000.0
+     * @group Draw
+     */
+    drawCanvas(opt: DrawCanvasOpt): void;
     /**
      * The Debug interface for debugging stuff.
      *
@@ -5702,21 +5739,52 @@ export interface KAPLAYCtx<
 
 export type Tag = string;
 
-type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
-    k: infer I,
-) => void ? I
-    : never;
-type Defined<T> = T extends any
+/**
+ * The basic unit of object in KAPLAY. The player, a butterfly, a tree, or even a piece of text.
+ *
+ * @group Game Obj
+ */
+export type GameObj<T = any> = GameObjRaw & MergeComps<T>;
+
+export type UnionToIntersection<U> =
+    (U extends any ? (k: U) => void : never) extends (
+        k: infer I,
+    ) => void ? I
+        : never;
+
+// What defined does is remove prop: never types for left types clean.
+// This could work for the proccess of remove Comp properties in XXXXComp types
+export type Defined<T> = T extends any
     ? Pick<T, { [K in keyof T]-?: T[K] extends undefined ? never : K }[keyof T]>
     : never;
-type Expand<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
-export type MergeObj<T> = Expand<UnionToIntersection<Defined<T>>>;
+
+/**
+ * It obligates to TypeScript to Expand the type.
+ *
+ * Instead of being `{ id: 1 } | { name: "hi" }`
+ * makes
+ * It's `{ id: 1, name: "hi" }`
+ *
+ * https://www.totaltypescript.com/concepts/the-prettify-helper
+ *
+ * Previously Expand<T>
+ */
+export type Prettify<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
+export type MergeObj<T> = Prettify<UnionToIntersection<Defined<T>>>;
+
+type RemoveCompProps<T> = Defined<
+    {
+        [K in keyof T]: K extends keyof Comp ? never : T[K];
+    }
+>;
+
 /**
  * A type to merge the components of a game object, omitting the default component properties.
  *
  * @group Component Types
  */
-export type MergeComps<T> = Omit<MergeObj<T>, keyof Comp>;
+export type MergeComps<T> = MergeObj<RemoveCompProps<T>>;
+
 export type MergePlugins<T extends PluginList<any>> = MergeObj<
     ReturnType<T[number]>
 >;
@@ -5726,7 +5794,7 @@ export type MergePlugins<T extends PluginList<any>> = MergeObj<
  *
  * @group Component Types
  */
-export type CompList<T> = Array<T | Tag>;
+export type CompList<T extends any | undefined> = (T | Tag)[];
 export type PluginList<T> = Array<T | KAPLAYPlugin<any>>;
 
 /**
@@ -6040,6 +6108,14 @@ export interface KAPLAYOpt<
      */
     spriteAtlasPadding?: number;
     /**
+     * If the debug inspect view should ignore objects that are paused when choosing
+     * the object to show the inspect view on.
+     *
+     * @default false
+     * @experimental
+     */
+    inspectOnlyActive?: boolean;
+    /**
      * The direction the sweep-and-prune system should run in to speed up collisions.
      *
      * XXX: Don't set this to "both" right now, the implementation is extremely slow and laggy.
@@ -6095,7 +6171,7 @@ export interface GameObjRaw {
      * @returns The added game object.
      * @since v3000.0
      */
-    add<T>(comps?: CompList<T> | GameObj<T>): GameObj<T>;
+    add<const T extends CompList<unknown>>(comps?: T): GameObj<T[number]>;
     /**
      * Remove and re-add the game obj, without triggering add / destroy events.
      *
@@ -6456,13 +6532,6 @@ export interface GameObjRaw {
     onButtonPress: KAPLAYCtx["onButtonPress"];
     onButtonRelease: KAPLAYCtx["onButtonRelease"];
 }
-
-/**
- * The basic unit of object in KAPLAY. The player, a butterfly, a tree, or even a piece of text.
- *
- * @group Game Obj
- */
-export type GameObj<T = any> = GameObjRaw & MergeComps<T>;
 
 /**
  * @group Options

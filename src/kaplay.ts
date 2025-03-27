@@ -4,8 +4,11 @@ const VERSION = "4000.0.0";
 import { type ButtonsDef, initApp } from "./app";
 
 import {
+    appendToPicture,
+    beginPicture,
     center,
     drawBezier,
+    drawCanvas,
     drawCircle,
     drawCurve,
     drawDebug,
@@ -16,6 +19,7 @@ import {
     drawLines,
     drawLoadScreen,
     drawMasked,
+    drawPicture,
     drawPolygon,
     drawRect,
     drawSprite,
@@ -25,6 +29,7 @@ import {
     drawTriangle,
     drawUnscaled,
     drawUVQuad,
+    endPicture,
     flush,
     formatText,
     FrameBuffer,
@@ -33,6 +38,7 @@ import {
     initAppGfx,
     initGfx,
     mousePos,
+    Picture,
     popTransform,
     pushMatrix,
     pushRotate,
@@ -169,6 +175,7 @@ import {
 
 import {
     BlendMode,
+    type Canvas,
     type Debug,
     type GameObj,
     type KAPLAYCtx,
@@ -212,6 +219,7 @@ import {
     particles,
     pathfinder,
     patrol,
+    picture,
     platformEffector,
     pointEffector,
     polygon,
@@ -233,6 +241,7 @@ import {
     timer,
     usesArea,
     uvquad,
+    video,
     z,
 } from "./components";
 
@@ -263,7 +272,6 @@ import {
     initGame,
     KeepFlags,
     layers,
-    make,
     on,
     onAdd,
     onClick,
@@ -507,7 +515,7 @@ const kaplay = <
         LCEvents.AfterUpdate,
     ]);
 
-    function makeCanvas(w: number, h: number) {
+    function makeCanvas(w: number, h: number): Canvas {
         const fb = new FrameBuffer(ggl, w, h);
 
         return {
@@ -1217,7 +1225,6 @@ const kaplay = <
         // obj
         getTreeRoot,
         add,
-        make,
         destroy,
         destroyAll,
         get,
@@ -1239,6 +1246,8 @@ const kaplay = <
         circle,
         ellipse,
         uvquad,
+        video,
+        picture,
         outline,
         particles,
         body,
@@ -1432,6 +1441,10 @@ const kaplay = <
         drawFormattedText,
         drawMasked,
         drawSubtracted,
+        beginPicture,
+        appendToPicture,
+        endPicture,
+        drawPicture,
         pushTransform,
         popTransform,
         pushTranslate: pushTranslateV,
@@ -1440,6 +1453,8 @@ const kaplay = <
         pushMatrix,
         usePostEffect,
         makeCanvas,
+        drawCanvas,
+        Picture,
         // debug
         debug,
         // scene

@@ -24,6 +24,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   myCursor.release();
   myCursor.move(vec2(100, 200)); // move as your wish
   ```
+
 - Added restitution and friction.
 - Added `k.system()` to replace internal events or create new.
 
@@ -32,9 +33,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
     // system code
   }, [LCEvents.AfterFixedUpdate, LCEvents.AfterUpdate]),
   ```
+
 - Added LCEvents enum for identify different lifecycle events.
 - Moved camera to the shader - @mflerackers
-- Blend mode
+- Blend mode - @mflerackers
+- Picture API - @mflerackers
+- drawCanvas - @mflerackers
+- Added `video()` component - @mflerackers
+
+### Removed
+
+- `make()` was sent to doom
 
 ### Changed
 
@@ -42,6 +51,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (`GJK`) distance algorithm.
 - Changed default behaviour of `kaplay({ tagsAsComponents: false })` to `false`.
 - Now if you pass a nullish value to `.use()` it throws an error
+- Improved TypeScript in game objects
 
 ## [3001.0.10] "Happy Colors" - TBD
 
@@ -63,21 +73,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   kaplay({ font: "happy" });
   loadHappy();
 
-  add([
-      text("ohhi"),
-  ]);
+  add([text("ohhi")]);
   ```
 
 - Added a new option in `LoadSpriteOpt` for loading sprites in an individual
   spritesheet - @chqs-git
   ```js
-  loadSprite(
-      "player",
-      "sprites/player.png",
-      {
-          singular: true,
-      },
-  );
+  loadSprite("player", "sprites/player.png", {
+      singular: true,
+  });
   ```
 
 ### Fixed
