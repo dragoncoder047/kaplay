@@ -6,10 +6,11 @@ import {
     MAX_BATCHED_VERTS,
     VERTEX_FORMAT,
 } from "../constants";
-import { BatchRenderer, FrameBuffer, type GfxCtx, Texture } from "../gfx";
 import { type Color, rgb } from "../math/color";
-import { Mat23, Mat4 } from "../math/math";
+import { Mat23 } from "../math/math";
 import type { KAPLAYOpt } from "../types";
+import { FrameBuffer } from "./classes/FrameBuffer";
+import { BatchRenderer, type GfxCtx, Texture } from "./gfx";
 
 export type AppGfxCtx = ReturnType<typeof initAppGfx>;
 
@@ -118,6 +119,8 @@ export const initAppGfx = (gfx: GfxCtx, gopt: KAPLAYOpt) => {
         postShader: null as string | null,
         postShaderUniform: null as Uniform | (() => Uniform) | null,
         renderer: renderer,
+        pixelDensity: pixelDensity,
+        gscale,
 
         transform: new Mat23(),
         transformStack: transformStack,

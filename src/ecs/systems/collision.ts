@@ -1,21 +1,15 @@
-import { type AreaComp, usesArea } from "../../components";
-import { onAdd, onDestroy, onUnuse, onUse } from "../../events";
-import { onSceneLeave } from "../../game";
-import { height, width } from "../../gfx";
+import { onAdd, onDestroy, onUnuse, onUse } from "../../events/globalEvents";
+import { onSceneLeave } from "../../game/scenes";
+import { height, width } from "../../gfx/stack";
 import { _k } from "../../kaplay";
-import {
-    gjkShapeIntersection,
-    HashGrid,
-    Quadtree,
-    Rect,
-    SweepAndPruneBoth,
-    SweepAndPruneHorizontal,
-    type SweepAndPruneLike,
-    SweepAndPruneVertical,
-    type Vec2,
-    vec2
-} from "../../math";
+import { gjkShapeIntersection } from "../../math/gjk";
+import { Rect, type Vec2, vec2 } from "../../math/math";
+import { type SweepAndPruneLike } from "../../math/spatial";
+import { HashGrid } from "../../math/spatial/hashgrid";
+import { Quadtree } from "../../math/spatial/quadtree";
+import { SweepAndPruneBoth, SweepAndPruneHorizontal, SweepAndPruneVertical } from "../../math/spatial/sweepandprune";
 import type { GameObj, KAPLAYOpt } from "../../types";
+import { type AreaComp, usesArea } from "../components/physics/area";
 
 export const getCollisionSystem = () => {
     class Collision {

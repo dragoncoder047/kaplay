@@ -1,277 +1,93 @@
-// the definitive version! :bean:
-const VERSION = "4000.0.0";
-
-import { type ButtonsDef, initApp } from "./app";
-
-import {
-    appendToPicture,
-    beginPicture,
-    center,
-    drawBezier,
-    drawCanvas,
-    drawCircle,
-    drawCurve,
-    drawDebug,
-    drawEllipse,
-    drawFormattedText,
-    drawFrame,
-    drawLine,
-    drawLines,
-    drawLoadScreen,
-    drawMasked,
-    drawPicture,
-    drawPolygon,
-    drawRect,
-    drawSprite,
-    drawSubtracted,
-    drawText,
-    drawTexture,
-    drawTriangle,
-    drawUnscaled,
-    drawUVQuad,
-    endPicture,
-    flush,
-    formatText,
-    FrameBuffer,
-    getBackground,
-    height,
-    initAppGfx,
-    initGfx,
-    mousePos,
-    Picture,
-    popTransform,
-    pushMatrix,
-    pushRotate,
-    pushScaleV,
-    pushTransform,
-    pushTranslateV,
-    setBackground,
-    updateViewport,
-    width,
-} from "./gfx";
-
+// The definitive version!
+import packageJson from "../package.json";
+import type { ButtonsDef } from "./app/inputBindings";
+import { loadAseprite } from "./assets/aseprite";
 import {
     Asset,
     getAsset,
-    getBitmapFont,
     getFailedAssets,
-    getFont,
-    getShader,
-    getSound,
-    getSprite,
-    initAssets,
     load,
-    loadAseprite,
-    loadBean,
-    loadBitmapFont,
-    loadFont,
-    loadHappy,
     loadJSON,
-    loadMusic,
-    loadPedit,
     loadProgress,
     loadRoot,
+} from "./assets/asset";
+import { getBitmapFont, loadBitmapFont, loadHappy } from "./assets/bitmapFont";
+import { getFont, loadFont } from "./assets/font";
+import { loadPedit } from "./assets/pedit";
+import {
+    getShader,
     loadShader,
     loadShaderURL,
-    loadSound,
-    loadSprite,
-    loadSpriteAtlas,
-    SoundData,
-    SpriteData,
     type Uniform,
-} from "./assets";
-
+} from "./assets/shader";
+import { getSound, loadMusic, loadSound, SoundData } from "./assets/sound";
+import { getSprite, loadBean, loadSprite, SpriteData } from "./assets/sprite";
+import { loadSpriteAtlas } from "./assets/spriteAtlas";
+import { burp } from "./audio/burp";
+import { play } from "./audio/play";
+import { getVolume, setVolume, volume } from "./audio/volume";
+import { ASCII_CHARS, EVENT_CANCEL_SYMBOL } from "./constants";
+import { createEngine } from "./core/engine";
+import { handleErr } from "./core/errors";
+import { blend } from "./ecs/components/draw/blend";
+import { circle } from "./ecs/components/draw/circle";
+import { color } from "./ecs/components/draw/color";
+import { drawon } from "./ecs/components/draw/drawon";
+import { ellipse } from "./ecs/components/draw/ellipse";
+import { fadeIn } from "./ecs/components/draw/fadeIn";
+import { mask } from "./ecs/components/draw/mask";
+import { opacity } from "./ecs/components/draw/opacity";
+import { outline } from "./ecs/components/draw/outline";
+import { particles } from "./ecs/components/draw/particles";
+import { picture } from "./ecs/components/draw/picture";
+import { polygon } from "./ecs/components/draw/polygon";
+import { raycast } from "./ecs/components/draw/raycast";
+import { rect } from "./ecs/components/draw/rect";
+import { shader } from "./ecs/components/draw/shader";
+import { sprite } from "./ecs/components/draw/sprite";
+import { text } from "./ecs/components/draw/text";
+import { uvquad } from "./ecs/components/draw/uvquad";
+import { video } from "./ecs/components/draw/video";
+import { agent } from "./ecs/components/level/agent";
+import { level } from "./ecs/components/level/level";
+import { pathfinder } from "./ecs/components/level/pathfinder";
+import { patrol } from "./ecs/components/level/patrol";
+import { sentry } from "./ecs/components/level/sentry";
+import { tile } from "./ecs/components/level/tile";
+import { animate, serializeAnimation } from "./ecs/components/misc/animate";
+import { fakeMouse } from "./ecs/components/misc/fakeMouse";
+import { health } from "./ecs/components/misc/health";
+import { lifespan } from "./ecs/components/misc/lifespan";
+import { named } from "./ecs/components/misc/named";
+import { state } from "./ecs/components/misc/state";
+import { stay } from "./ecs/components/misc/stay";
+import { textInput } from "./ecs/components/misc/textInput";
+import { timer } from "./ecs/components/misc/timer";
+import { area } from "./ecs/components/physics/area";
+import { body } from "./ecs/components/physics/body";
+import { doubleJump } from "./ecs/components/physics/doubleJump";
 import {
-    ASCII_CHARS,
-    BG_GRID_SIZE,
-    DBG_FONT,
-    EVENT_CANCEL_SYMBOL,
-    LOG_MAX,
-    MAX_TEXT_CACHE_SIZE,
-} from "./constants";
-
-import {
-    bezier,
-    cardinal,
-    catmullRom,
-    chance,
-    choose,
-    chooseMultiple,
-    Circle,
-    clamp,
-    clipLineToCircle,
-    clipLineToRect,
-    Color,
-    curveLengthApproximation,
-    deg2rad,
-    easingCubicBezier,
-    easingLinear,
-    easingSteps,
-    Ellipse,
-    evaluateBezier,
-    evaluateBezierFirstDerivative,
-    evaluateBezierSecondDerivative,
-    evaluateCatmullRom,
-    evaluateCatmullRomFirstDerivative,
-    evaluateQuadratic,
-    evaluateQuadraticFirstDerivative,
-    evaluateQuadraticSecondDerivative,
-    gjkShapeIntersection,
-    gjkShapeIntersects,
-    HashGrid,
-    hermite,
-    hsl2rgb,
-    isConvex,
-    kochanekBartels,
-    lerp,
-    Line,
-    map,
-    mapc,
-    Mat23,
-    Mat4,
-    NavMesh,
-    normalizedCurve,
-    Point,
-    Polygon,
-    Quad,
-    quad,
-    rad2deg,
-    rand,
-    randi,
-    randSeed,
-    Rect,
-    rgb,
-    RNG,
-    shuffle,
-    SweepAndPruneBoth,
-    SweepAndPruneHorizontal,
-    type SweepAndPruneLike,
-    SweepAndPruneVertical,
-    Quadtree,
-    testCirclePolygon,
-    testLineCircle,
-    testLineLine,
-    testLinePoint,
-    testRectLine,
-    testRectPoint,
-    testRectRect,
-    triangulate,
-    Vec2,
-    vec2,
-    wave,
-} from "./math";
-
-import easings from "./math/easings";
-
-import {
-    download,
-    downloadBlob,
-    downloadJSON,
-    downloadText,
-    KEvent,
-    KEventController,
-    KEventHandler,
-} from "./utils";
-
-import {
-    BlendMode,
-    type Canvas,
-    type Debug,
-    type GameObj,
-    type KAPLAYCtx,
-    type KAPLAYInternal,
-    type KAPLAYOpt,
-    type KAPLAYPlugin,
-    type MergePlugins,
-    type PluginList,
-    type Recording,
-} from "./types";
-
-import {
-    agent,
-    anchor,
-    animate,
-    area,
-    type AreaComp,
     areaEffector,
-    blend,
-    body,
     buoyancyEffector,
-    circle,
-    color,
     constantForce,
-    doubleJump,
-    drawon,
-    ellipse,
-    fadeIn,
-    fakeMouse,
-    fixed,
-    follow,
-    health,
-    layer,
-    lifespan,
-    mask,
-    move,
-    named,
-    offscreen,
-    opacity,
-    outline,
-    particles,
-    pathfinder,
-    patrol,
-    picture,
     platformEffector,
     pointEffector,
-    polygon,
-    pos,
-    raycast,
-    rect,
-    rotate,
-    scale,
-    sentry,
-    serializeAnimation,
-    shader,
-    sprite,
-    state,
-    stay,
     surfaceEffector,
-    text,
-    textInput,
-    tile,
-    timer,
-    usesArea,
-    uvquad,
-    video,
-    z,
-} from "./components";
-
-import { burp, getVolume, initAudio, play, setVolume, volume } from "./audio";
-
+} from "./ecs/components/physics/effectors";
+import { anchor } from "./ecs/components/transform/anchor";
+import { fixed } from "./ecs/components/transform/fixed";
+import { follow } from "./ecs/components/transform/follow";
+import { layer } from "./ecs/components/transform/layer";
+import { move } from "./ecs/components/transform/move";
+import { offscreen } from "./ecs/components/transform/offscreen";
+import { pos } from "./ecs/components/transform/pos";
+import { rotate } from "./ecs/components/transform/rotate";
+import { scale } from "./ecs/components/transform/scale";
+import { z } from "./ecs/components/transform/z";
+import { KeepFlags } from "./ecs/make";
+import { getCollisionSystem } from "./ecs/systems/collision";
+import { KEvent, KEventController, KEventHandler } from "./events/events";
 import {
-    addKaboom,
-    addLevel,
-    camFlash,
-    camPos,
-    camRot,
-    camScale,
-    camTransform,
-    destroy,
-    flash,
-    getCamPos,
-    getCamRot,
-    getCamScale,
-    getCamTransform,
-    getDefaultLayer,
-    getGravity,
-    getGravityDirection,
-    getLayers,
-    getSceneName,
-    getTreeRoot,
-    go,
-    initEvents,
-    initGame,
-    KeepFlags,
-    layers,
     on,
     onAdd,
     onClick,
@@ -289,63 +105,176 @@ import {
     onLoadError,
     onLoading,
     onResize,
-    onSceneLeave,
     onTag,
     onUntag,
     onUnuse,
     onUpdate,
     onUse,
-    scene,
+    trigger,
+} from "./events/globalEvents";
+import {
+    camFlash,
+    camPos,
+    camRot,
+    camScale,
+    camTransform,
+    flash,
+    getCamPos,
+    getCamRot,
+    getCamScale,
+    getCamTransform,
     setCamPos,
     setCamRot,
     setCamScale,
-    setGravity,
-    setGravityDirection,
-    setLayers,
     shake,
     toScreen,
     toWorld,
-    trigger,
-} from "./game";
-
-import { createEngine } from "./core/engine";
-import { getCollisionSystem } from "./ecs/systems/collision";
+} from "./game/camera";
+import {
+    getGravity,
+    getGravityDirection,
+    setGravity,
+    setGravityDirection,
+} from "./game/gravity";
+import { initEvents } from "./game/initEvents";
+import { addKaboom } from "./game/kaboom";
+import { getDefaultLayer, getLayers, layers, setLayers } from "./game/layers";
+import { addLevel } from "./game/level";
+import { destroy, getTreeRoot } from "./game/object";
+import { getSceneName, go, onSceneLeave, scene } from "./game/scenes";
 import { LCEvents, system } from "./game/systems";
+import { getBackground, setBackground } from "./gfx/bg";
+import { FrameBuffer } from "./gfx/classes/FrameBuffer";
+import { drawBezier } from "./gfx/draw/drawBezier";
+import { drawCanvas } from "./gfx/draw/drawCanvas";
+import { drawCircle } from "./gfx/draw/drawCircle";
+import { drawCurve } from "./gfx/draw/drawCurve";
+import { drawDebug } from "./gfx/draw/drawDebug";
+import { drawEllipse } from "./gfx/draw/drawEllipse";
+import { drawFormattedText } from "./gfx/draw/drawFormattedText";
+import { drawFrame } from "./gfx/draw/drawFrame";
+import { drawLine, drawLines } from "./gfx/draw/drawLine";
+import { drawLoadScreen } from "./gfx/draw/drawLoadingScreen";
+import { drawMasked } from "./gfx/draw/drawMasked";
+import {
+    appendToPicture,
+    beginPicture,
+    drawPicture,
+    endPicture,
+    Picture,
+} from "./gfx/draw/drawPicture";
+import { drawPolygon } from "./gfx/draw/drawPolygon";
+import { drawRect } from "./gfx/draw/drawRect";
+import { drawSprite } from "./gfx/draw/drawSprite";
+import { drawSubtracted } from "./gfx/draw/drawSubstracted";
+import { drawText } from "./gfx/draw/drawText";
+import { drawTriangle } from "./gfx/draw/drawTriangle";
+import { drawUVQuad } from "./gfx/draw/drawUVQuad";
+import { formatText } from "./gfx/formatText";
+import {
+    center,
+    flush,
+    height,
+    mousePos,
+    popTransform,
+    pushMatrix,
+    pushRotate,
+    pushScaleV,
+    pushTransform,
+    pushTranslateV,
+    width,
+} from "./gfx/stack";
+import { updateViewport } from "./gfx/viewport";
+const VERSION = packageJson.version;
+
 import boomSpriteSrc from "./kassets/boom.png";
 import kaSpriteSrc from "./kassets/ka.png";
+import { clamp } from "./math/clamp";
+import { Color, hsl2rgb, rgb } from "./math/color";
+import easings from "./math/easings";
+import { gjkShapeIntersection, gjkShapeIntersects } from "./math/gjk";
+import {
+    bezier,
+    cardinal,
+    catmullRom,
+    chance,
+    choose,
+    chooseMultiple,
+    Circle,
+    clipLineToCircle,
+    clipLineToRect,
+    curveLengthApproximation,
+    deg2rad,
+    easingCubicBezier,
+    easingLinear,
+    easingSteps,
+    Ellipse,
+    evaluateBezier,
+    evaluateBezierFirstDerivative,
+    evaluateBezierSecondDerivative,
+    evaluateCatmullRom,
+    evaluateCatmullRomFirstDerivative,
+    evaluateQuadratic,
+    evaluateQuadraticFirstDerivative,
+    evaluateQuadraticSecondDerivative,
+    hermite,
+    isConvex,
+    kochanekBartels,
+    lerp,
+    Line,
+    map,
+    mapc,
+    Mat23,
+    Mat4,
+    normalizedCurve,
+    Point,
+    Polygon,
+    Quad,
+    quad,
+    rad2deg,
+    rand,
+    randi,
+    randSeed,
+    Rect,
+    RNG,
+    shuffle,
+    testCirclePolygon,
+    testLineCircle,
+    testLineLine,
+    testLinePoint,
+    testRectLine,
+    testRectPoint,
+    testRectRect,
+    triangulate,
+    Vec2,
+    vec2,
+    wave,
+} from "./math/math";
+import { NavMesh } from "./math/navigationmesh";
+import {
+    BlendMode,
+    type Canvas,
+    type KAPLAYCtx,
+    type KAPLAYOpt,
+    type KAPLAYPlugin,
+    type MergePlugins,
+    type PluginList,
+    type Recording,
+} from "./types";
+import {
+    download,
+    downloadBlob,
+    downloadJSON,
+    downloadText,
+} from "./utils/dataURL";
 
-// Internal data, shared between all modules
-export const _k = {
-    k: null,
-    globalOpt: null,
-    gfx: null,
-    game: null,
-    app: null,
-    assets: null,
-    fontCacheCanvas: null,
-    fontCacheC2d: null,
-    debug: null,
-    audio: null,
-    pixelDensity: null,
-    canvas: null,
-    gscale: null,
-    kaSprite: null,
-    boomSprite: null,
-    handleErr: null,
-    systems: [], // all systems added
-    // we allocate systems
-    systemsByEvent: [
-        [], // afterDraw
-        [], // afterFixedUpdate
-        [], // afterUpdate
-        [], // beforeDraw
-        [], // beforeFixedUpdate
-        [], // beforeUpdate
-    ],
-} as unknown as KAPLAYInternal;
+/**
+ * KAPLAY.js internal data
+ */
+export let _k: KAPLAYCtx["_k"];
 
 // If KAPLAY crashed
-let crashed = false;
+let initialized = false;
 
 /**
  * Initialize KAPLAY context. The starting point of all KAPLAY games.
@@ -388,39 +317,28 @@ const kaplay = <
 >(
     gopt: KAPLAYOpt<TPlugins, TButtons> = {},
 ): TPlugins extends [undefined] ? KAPLAYCtx<TButtons, TButtonsName>
-    : KAPLAYCtx<TButtons, TButtonsName> & MergePlugins<TPlugins> => {
-    if (_k.k) {
+    : KAPLAYCtx<TButtons, TButtonsName> & MergePlugins<TPlugins> =>
+{
+    if (initialized) {
         console.warn(
             "KAPLAY already initialized, you are calling kaplay() multiple times, it may lead bugs!",
         );
-        _k.k.quit();
     }
 
-    _k.globalOpt = gopt;
+    initialized = true;
+
+    _k = createEngine(gopt);
 
     const {
-        appGfx,
+        ggl,
         assets,
         audio,
-        canvas,
-        fontCacheC2d,
-        fontCacheCanvas,
-        frameEnd,
-        frameStart,
+        frameRenderer,
         gfx,
         app,
         game,
-    } = createEngine(gopt);
-
-    _k.app = app;
-    _k.audio = audio;
-    _k.canvas = canvas;
-    _k.fontCacheC2d = fontCacheC2d;
-    _k.fontCacheCanvas = fontCacheCanvas, _k.gfx = appGfx;
-    _k.pixelDensity = gopt.pixelDensity ?? 1;
-    _k.gscale = 1;
-    _k.assets = assets;
-    _k.game = game;
+        debug,
+    } = _k;
 
     const { checkFrame, switchBroadPhaseAlgo, cleanBroadPhase } = getCollisionSystem();
 
@@ -429,8 +347,12 @@ const kaplay = <
         LCEvents.AfterUpdate,
     ]);
 
+    // TODO: make this an opt
+    game.kaSprite = loadSprite(null, kaSpriteSrc);
+    game.boomSprite = loadSprite(null, boomSpriteSrc);
+
     function makeCanvas(w: number, h: number): Canvas {
-        const fb = new FrameBuffer(gfx, w, h);
+        const fb = new FrameBuffer(ggl, w, h);
 
         return {
             clear: () => fb.clear(),
@@ -453,57 +375,9 @@ const kaplay = <
     }
 
     function usePostEffect(name: string, uniform?: Uniform | (() => Uniform)) {
-        appGfx.postShader = name;
-        appGfx.postShaderUniform = uniform ?? null;
+        gfx.postShader = name;
+        gfx.postShaderUniform = uniform ?? null;
     }
-
-    let debugPaused = false;
-
-    const debug: Debug = {
-        inspect: false,
-        set timeScale(timeScale: number) {
-            app.state.timeScale = timeScale;
-        },
-        get timeScale() {
-            return app.state.timeScale;
-        },
-        showLog: true,
-        fps: () => app.fps(),
-        numFrames: () => app.numFrames(),
-        stepFrame: updateFrame,
-        drawCalls: () => appGfx.lastDrawCalls,
-        clearLog: () => game.logs = [],
-        log: (...msgs) => {
-            const max = gopt.logMax ?? LOG_MAX;
-            const msg = msgs.length > 1 ? msgs.concat(" ").join(" ") : msgs[0];
-
-            game.logs.unshift({
-                msg: msg,
-                time: app.time(),
-            });
-            if (game.logs.length > max) {
-                game.logs = game.logs.slice(0, max);
-            }
-        },
-        error: (msg) =>
-            debug.log(new Error(msg.toString ? msg.toString() : msg as string)),
-        curRecording: null,
-        numObjects: () => get("*", { recursive: true }).length,
-        get paused() {
-            return debugPaused;
-        },
-        set paused(v) {
-            debugPaused = v;
-            if (v) {
-                audio.ctx.suspend();
-            }
-            else {
-                audio.ctx.resume();
-            }
-        },
-    };
-
-    _k.debug = debug;
 
     function getData<T>(key: string, def?: T): T | null {
         try {
@@ -620,88 +494,6 @@ const kaplay = <
     const query = game.root.query.bind(game.root);
     const tween = game.root.tween.bind(game.root);
 
-    const kaSprite = loadSprite(null, kaSpriteSrc);
-    const boomSprite = loadSprite(null, boomSpriteSrc);
-
-    _k.kaSprite = kaSprite;
-    _k.boomSprite = boomSprite;
-
-    function fixedUpdateFrame() {
-        // update every obj
-        game.root.fixedUpdate();
-    }
-
-    function updateFrame() {
-        game.root.update();
-    }
-
-    function handleErr(err: Error) {
-        if (crashed) return;
-        crashed = true;
-        console.error(err);
-        audio.ctx.suspend();
-        const errorMessage = err.message ?? String(err)
-            ?? "Unknown error, check console for more info";
-        let errorScreen = false;
-
-        app.run(
-            () => { },
-            () => {
-                if (errorScreen) return;
-                errorScreen = true;
-
-                frameStart();
-
-                drawUnscaled(() => {
-                    const pad = 32;
-                    const gap = 16;
-                    const gw = width();
-                    const gh = height();
-
-                    const textStyle = {
-                        size: 36,
-                        width: gw - pad * 2,
-                        letterSpacing: 4,
-                        lineSpacing: 4,
-                        font: DBG_FONT,
-                        fixed: true,
-                    };
-
-                    drawRect({
-                        width: gw,
-                        height: gh,
-                        color: rgb(0, 0, 255),
-                        fixed: true,
-                    });
-
-                    const title = formatText({
-                        ...textStyle,
-                        text: "Error",
-                        pos: vec2(pad),
-                        color: rgb(255, 128, 0),
-                        fixed: true,
-                    });
-
-                    drawFormattedText(title);
-
-                    drawText({
-                        ...textStyle,
-                        text: errorMessage,
-                        pos: vec2(pad, pad + title.height + gap),
-                        fixed: true,
-                    });
-
-                    popTransform();
-                    game.events.trigger("error", err);
-                });
-
-                frameEnd();
-            },
-        );
-    }
-
-    _k.handleErr = handleErr;
-
     const gc: Array<() => void> = [];
 
     function onCleanup(action: () => void) {
@@ -735,7 +527,7 @@ const kaplay = <
             gfx.gl.bindFramebuffer(gfx.gl.FRAMEBUFFER, null);
 
             // run all scattered gc events
-            gfx.destroy();
+            ggl.destroy();
             gc.forEach((f) => f());
         });
     }
@@ -749,16 +541,16 @@ const kaplay = <
                 if (assets.loaded) {
                     if (!debug.paused) {
                         for (
-                            const sys of _k
+                            const sys of game
                                 .systemsByEvent[LCEvents.BeforeFixedUpdate]
                         ) {
                             sys.run();
                         }
 
-                        fixedUpdateFrame();
+                        frameRenderer.fixedUpdateFrame();
 
                         for (
-                            const sys of _k
+                            const sys of game
                                 .systemsByEvent[LCEvents.AfterFixedUpdate]
                         ) {
                             sys.run();
@@ -789,44 +581,47 @@ const kaplay = <
                     !assets.loaded && gopt.loadingScreen !== false
                     || isFirstFrame
                 ) {
-                    frameStart();
+                    frameRenderer.frameStart();
                     // TODO: Currently if assets are not initially loaded no updates or timers will be run, however they will run if loadingScreen is set to false. What's the desired behavior or should we make them consistent?
                     drawLoadScreen();
-                    frameEnd();
+                    frameRenderer.frameEnd();
                 }
                 else {
                     if (!debug.paused) {
                         for (
-                            const sys of _k
+                            const sys of game
                                 .systemsByEvent[LCEvents.BeforeUpdate]
                         ) {
                             sys.run();
                         }
 
-                        updateFrame();
+                        frameRenderer.updateFrame();
 
                         for (
-                            const sys of _k.systemsByEvent[LCEvents.AfterUpdate]
+                            const sys of game
+                                .systemsByEvent[LCEvents.AfterUpdate]
                         ) {
                             sys.run();
                         }
                     }
 
                     // checkFrame();
-                    frameStart();
+                    frameRenderer.frameStart();
 
-                    for (const sys of _k.systemsByEvent[LCEvents.BeforeDraw]) {
+                    for (
+                        const sys of game.systemsByEvent[LCEvents.BeforeDraw]
+                    ) {
                         sys.run();
                     }
 
                     drawFrame();
                     if (gopt.debug !== false) drawDebug();
 
-                    for (const sys of _k.systemsByEvent[LCEvents.AfterDraw]) {
+                    for (const sys of game.systemsByEvent[LCEvents.AfterDraw]) {
                         sys.run();
                     }
 
-                    frameEnd();
+                    frameRenderer.frameEnd();
                 }
 
                 if (isFirstFrame) {
@@ -986,6 +781,7 @@ const kaplay = <
         sentry,
         patrol,
         pathfinder,
+        level,
         fakeMouse,
         // group events
         trigger,
@@ -1239,3 +1035,4 @@ const kaplay = <
 };
 
 export { kaplay };
+export default kaplay;

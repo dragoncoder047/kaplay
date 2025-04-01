@@ -1,4 +1,5 @@
-import type { Asset, BitmapFontData } from "../../assets";
+import type { Asset } from "../../assets/asset";
+import type { BitmapFontData } from "../../assets/bitmapFont";
 import type { FontData } from "../../assets/font";
 import type { Color } from "../../math/color";
 import type { Vec2 } from "../../math/math";
@@ -133,7 +134,7 @@ export interface CharTransform {
     /**
      * If true, characters that have a X scale that is not 1 won't have the bounding box stretched to fit the character,
      * and may end up overlapping with adjacent characters.
-     * 
+     *
      * @default false
      */
     stretchInPlace?: boolean;
