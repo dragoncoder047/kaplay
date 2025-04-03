@@ -2,13 +2,16 @@ import type { BitmapFontData } from "../../../assets/bitmapFont";
 import { DEF_TEXT_SIZE } from "../../../constants";
 import { onLoad } from "../../../events/globalEvents";
 import { getRenderProps } from "../../../game/utils";
-import { drawFormattedText, type FormattedText } from "../../../gfx/draw/drawFormattedText";
+import {
+    drawFormattedText,
+    type FormattedText,
+} from "../../../gfx/draw/drawFormattedText";
 import type {
     CharTransform,
     CharTransformFunc,
     TextAlign,
 } from "../../../gfx/draw/drawText";
-import { compileStyledText, formatText } from "../../../gfx/formatText";
+import { formatText } from "../../../gfx/formatText";
 import { Rect, vec2 } from "../../../math/math";
 import type { Comp, GameObj } from "../../../types";
 

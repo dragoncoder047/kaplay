@@ -139,6 +139,16 @@ import type {
 } from "./math/math";
 import type { NavMesh } from "./math/navigationmesh";
 
+type Clean<T extends any[]> = {
+    [K in keyof T]: T[K] extends infer U extends any
+        ? U extends infer F extends Comp ? F : {
+            [K in keyof U]: "f";
+        }
+        : never;
+};
+
+type X = Clean<[SpriteComp, { readonly x: string }]>;
+
 /**
  * Context handle that contains every KAPLAY function.
  *
@@ -203,7 +213,7 @@ export interface KAPLAYCtx<
   * @returns The added game object that contains all properties and methods each component offers.
   * @group Game Obj
   */
-    add<const T extends CompList<unknown>>(comps?: T): GameObj<T[number]>;
+    add<T extends CompList<unknown>>(comps?: [...T]): GameObj<T[number]>;
     /**
      * Remove and re-add the game obj, without triggering add / destroy events.
      *
@@ -4371,7 +4381,7 @@ export interface KAPLAYCtx<
      */
     chance(p: number): boolean;
     /**
-     * Linear interpolation.
+     * Linear interpolation. Can take a number, vector, or color.
      *
      * @group Math
      */
@@ -4475,7 +4485,9 @@ export interface KAPLAYCtx<
      */
     mapc(v: number, l1: number, h1: number, l2: number, h2: number): number;
     /**
-     * Interpolate between 2 values (Optionally takes a custom periodic function, which default to Math.sin).
+     * Interpolate back and forth between 2 values.
+     * 
+     * (Optionally takes a custom periodic function, which default to a sine wave.).
      *
      * @example
      * ```js
@@ -4489,12 +4501,12 @@ export interface KAPLAYCtx<
      *
      * @group Math
      */
-    wave(
-        lo: number,
-        hi: number,
+    wave<V extends LerpValue>(
+        lo: V,
+        hi: V,
         t: number,
         func?: (x: number) => number,
-    ): number;
+    ): V;
     /**
      * Convert degrees to radians.
      *
@@ -6207,7 +6219,7 @@ export interface GameObjRaw {
      * @returns The added game object.
      * @since v3000.0
      */
-    add<const T extends CompList<unknown>>(comps?: T): GameObj<T[number]>;
+    add<T extends CompList<unknown>>(comps?: [...T]): GameObj<T[number]>;
     /**
      * Remove and re-add the game obj, without triggering add / destroy events.
      *
