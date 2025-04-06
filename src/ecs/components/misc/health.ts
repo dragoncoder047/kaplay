@@ -18,11 +18,11 @@ export interface HealthComp extends Comp {
     /**
      * Current health points.
      */
-    hp: number
+    hp: number;
     /**
      * Max amount of HP.
      */
-    maxHP: number | undefined
+    maxHP: number | undefined;
     /**
      * Register an event that runs when hurt() is called upon the object.
      *

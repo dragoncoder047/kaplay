@@ -1,7 +1,7 @@
-import type { SweepAndPruneLike } from "."
-import type { AreaComp } from "../../ecs/components/physics/area"
-import type { GameObj } from "../../types"
-import { Rect, vec2 } from "../math"
+import type { AreaComp } from "../../ecs/components/physics/area";
+import type { GameObj } from "../../types";
+import { Rect, vec2 } from "../math";
+import type { SweepAndPruneLike } from ".";
 
 enum NodeIndex {
     TR = 0,
@@ -178,7 +178,10 @@ export class Quadtree implements SweepAndPruneLike {
      */
     insert(obj: GameObj<AreaComp>, bbox: Rect): void {
         // If we reached max objects, subdivide and redistribute
-        if (this.objects.length >= this.maxObjects && this.level < this.maxLevels) {
+        if (
+            this.objects.length >= this.maxObjects
+            && this.level < this.maxLevels
+        ) {
             if (this.nodes.length === 0) {
                 this.subdivide();
                 // Redistribute objects
@@ -290,7 +293,7 @@ export class Quadtree implements SweepAndPruneLike {
             && bbox.pos.y >= this.bounds.pos.y
             && bbox.pos.x + bbox.width <= this.bounds.pos.x + this.bounds.width
             && bbox.pos.y + bbox.height
-            <= this.bounds.pos.y + this.bounds.height;
+                <= this.bounds.pos.y + this.bounds.height;
     }
 
     /**
@@ -344,17 +347,33 @@ export class Quadtree implements SweepAndPruneLike {
         if (this.objects.some(obj => this.isOutside(obj.aabb()))) return true;
         if (this.nodes.length === 0) return false;
         if (directionsToCheck.size === 0) return false;
-        const memoized = (expensive: () => boolean): (() => boolean) => {
+        const memoized = (expensive: () => boolean): () => boolean => {
             let result: boolean | undefined;
             return () => {
                 if (result !== undefined) return result;
                 return result = expensive();
             };
         };
-        const brHasOOB = memoized(() => this.nodes[NodeIndex.BR]?.has_oob(directionsToCheck.intersection(new Set(["right", "down"]))));
-        const blHasOOB = memoized(() => this.nodes[NodeIndex.BL]?.has_oob(directionsToCheck.intersection(new Set(["left", "down"]))));
-        const trHasOOB = memoized(() => this.nodes[NodeIndex.TR]?.has_oob(directionsToCheck.intersection(new Set(["right", "up"]))));
-        const tlHasOOB = memoized(() => this.nodes[NodeIndex.TL]?.has_oob(directionsToCheck.intersection(new Set(["left", "up"]))));
+        const brHasOOB = memoized(() =>
+            this.nodes[NodeIndex.BR]?.has_oob(
+                directionsToCheck.intersection(new Set(["right", "down"])),
+            )
+        );
+        const blHasOOB = memoized(() =>
+            this.nodes[NodeIndex.BL]?.has_oob(
+                directionsToCheck.intersection(new Set(["left", "down"])),
+            )
+        );
+        const trHasOOB = memoized(() =>
+            this.nodes[NodeIndex.TR]?.has_oob(
+                directionsToCheck.intersection(new Set(["right", "up"])),
+            )
+        );
+        const tlHasOOB = memoized(() =>
+            this.nodes[NodeIndex.TL]?.has_oob(
+                directionsToCheck.intersection(new Set(["left", "up"])),
+            )
+        );
         if (directionsToCheck.has("left")) {
             if (tlHasOOB() || blHasOOB()) return true;
         }
@@ -382,7 +401,10 @@ export class Quadtree implements SweepAndPruneLike {
     }
 
     bbox_union(): Rect {
-        let minX = Number.MAX_VALUE, minY = Number.MAX_VALUE, maxX = Number.MIN_VALUE, maxY = Number.MIN_VALUE;
+        let minX = Number.MAX_VALUE,
+            minY = Number.MAX_VALUE,
+            maxX = Number.MIN_VALUE,
+            maxY = Number.MIN_VALUE;
         const boxes = this.objects.map(x => x.aabb());
         boxes.push(...this.nodes.map(x => x.bbox_union()));
         for (let i = 0; i < boxes.length; i++) {
@@ -454,7 +476,11 @@ export class Quadtree implements SweepAndPruneLike {
         }
     }
 
-    *[Symbol.iterator](): Generator<[GameObj<AreaComp>, GameObj<AreaComp>], void, void> {
+    *[Symbol.iterator](): Generator<
+        [GameObj<AreaComp>, GameObj<AreaComp>],
+        void,
+        void
+    > {
         const pairs: Array<[GameObj<AreaComp>, GameObj<AreaComp>]> = [];
         this.gatherPairs([], pairs);
         for (let i = 0; i < pairs.length; i++) {

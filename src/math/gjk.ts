@@ -73,8 +73,9 @@ class PolygonCollider implements Collider {
     }
 
     support(direction: Vec2): Vec2 {
-        if (isNaN(direction.x) || isNaN(direction.y))
+        if (isNaN(direction.x) || isNaN(direction.y)) {
             throw new Error("got NaN'ed direction vector");
+        }
         let maxPoint;
         let maxDistance = Number.NEGATIVE_INFINITY;
 

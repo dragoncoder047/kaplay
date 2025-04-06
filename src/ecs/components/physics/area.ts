@@ -23,7 +23,13 @@ import type {
     Shape,
     Tag,
 } from "../../../types";
-import { AreaDirty, LocalAreaDirty, LocalAreaUpdated, WorldAreaDirty, WorldAreaUpdated } from "../../make";
+import {
+    AreaDirty,
+    LocalAreaDirty,
+    LocalAreaUpdated,
+    WorldAreaDirty,
+    WorldAreaUpdated,
+} from "../../make";
 import type { FakeMouseComp } from "../misc/fakeMouse";
 import type { AnchorComp } from "../transform/anchor";
 import type { FixedComp } from "../transform/fixed";
@@ -651,8 +657,9 @@ export function area(opt: AreaCompOpt = {}): AreaComp {
                 return `area: ${this.area.scale?.x?.toFixed(1)}x`;
             }
             else {
-                return `area: (${this.area.scale?.x?.toFixed(1)}x, ${this.area.scale.y?.toFixed(1)
-                    }y)`;
+                return `area: (${this.area.scale?.x?.toFixed(1)}x, ${
+                    this.area.scale.y?.toFixed(1)
+                }y)`;
             }
         },
     };

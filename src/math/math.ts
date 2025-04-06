@@ -115,8 +115,8 @@ export class Vec2 {
         return Math.abs(this.x) > Math.abs(this.y)
             ? this.x < 0 ? Vec2.LEFT : Vec2.RIGHT
             : this.y < 0
-                ? Vec2.UP
-                : Vec2.DOWN;
+            ? Vec2.UP
+            : Vec2.DOWN;
     }
 
     /** Clone the vector */
@@ -950,7 +950,7 @@ export class Mat23 {
         this.d = d;
         this.e = e;
         this.f = f;
-        return this
+        return this;
     }
     transform(p: Vec2) {
         return vec2(
@@ -1007,7 +1007,8 @@ export class Mat23 {
         );
     }
     get hasScale() {
-        return this.a * this.a + this.c * this.c > Number.EPSILON || this.b * this.b + this.d * this.d > Number.EPSILON;
+        return this.a * this.a + this.c * this.c > Number.EPSILON
+            || this.b * this.b + this.d * this.d > Number.EPSILON;
     }
     get hasRotationOrSkew() {
         return this.b > Number.EPSILON || this.c > Number.EPSILON;
@@ -1390,7 +1391,7 @@ export class Mat4 {
             const r = Math.sqrt(this.m[0] * this.m[0] + this.m[1] * this.m[1]);
             return new Vec2(
                 Math.atan(this.m[0] * this.m[4] + this.m[1] * this.m[5])
-                / (r * r),
+                    / (r * r),
                 0,
             );
         }
@@ -1399,7 +1400,7 @@ export class Mat4 {
             return new Vec2(
                 0,
                 Math.atan(this.m[0] * this.m[4] + this.m[1] * this.m[5])
-                / (s * s),
+                    / (s * s),
             );
         }
         else {
@@ -2012,7 +2013,7 @@ export function testPolygonPoint(poly: Polygon, pt: Vec2): boolean {
             ((p[i].y > pt.y) != (p[j].y > pt.y))
             && (pt.x
                 < (p[j].x - p[i].x) * (pt.y - p[i].y) / (p[j].y - p[i].y)
-                + p[i].x)
+                    + p[i].x)
         ) {
             c = !c;
         }
@@ -2030,7 +2031,7 @@ export function testEllipsePoint(ellipse: Ellipse, pt: Vec2): boolean {
     const vx = pt.x * c + pt.y * s;
     const vy = -pt.x * s + pt.y * c;
     return vx * vx / (ellipse.radiusX * ellipse.radiusX)
-        + vy * vy / (ellipse.radiusY * ellipse.radiusY) < 1;
+            + vy * vy / (ellipse.radiusY * ellipse.radiusY) < 1;
 }
 
 export function testEllipseCircle(ellipse: Ellipse, circle: Circle): boolean {
@@ -2970,7 +2971,7 @@ export class Ellipse {
         const vx = point.x * c + point.y * s;
         const vy = -point.x * s + point.y * c;
         return vx * vx / (this.radiusX * this.radiusX)
-            + vy * vy / (this.radiusY * this.radiusY) < 1;
+                + vy * vy / (this.radiusY * this.radiusY) < 1;
     }
     raycast(origin: Vec2, direction: Vec2): RaycastResult {
         return raycastEllipse(origin, direction, this);
@@ -3388,21 +3389,21 @@ export function kochanekBartels(
     const hx = h(
         pt2.x,
         0.5 * (1 - tension) * (1 + bias) * (1 + continuity) * (pt2.x - pt1.x)
-        + 0.5 * (1 - tension) * (1 - bias) * (1 - continuity)
-        * (pt3.x - pt2.x),
+            + 0.5 * (1 - tension) * (1 - bias) * (1 - continuity)
+                * (pt3.x - pt2.x),
         0.5 * (1 - tension) * (1 + bias) * (1 - continuity) * (pt3.x - pt2.x)
-        + 0.5 * (1 - tension) * (1 - bias) * (1 + continuity)
-        * (pt4.x - pt3.x),
+            + 0.5 * (1 - tension) * (1 - bias) * (1 + continuity)
+                * (pt4.x - pt3.x),
         pt3.x,
     );
     const hy = h(
         pt2.y,
         0.5 * (1 - tension) * (1 + bias) * (1 + continuity) * (pt2.y - pt1.y)
-        + 0.5 * (1 - tension) * (1 - bias) * (1 - continuity)
-        * (pt3.y - pt2.y),
+            + 0.5 * (1 - tension) * (1 - bias) * (1 - continuity)
+                * (pt3.y - pt2.y),
         0.5 * (1 - tension) * (1 + bias) * (1 - continuity) * (pt3.y - pt2.y)
-        + 0.5 * (1 - tension) * (1 - bias) * (1 + continuity)
-        * (pt4.y - pt3.y),
+            + 0.5 * (1 - tension) * (1 - bias) * (1 + continuity)
+                * (pt4.y - pt3.y),
         pt3.y,
     );
     return (t: number) => {

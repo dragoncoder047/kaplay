@@ -1,6 +1,6 @@
-import type { SweepAndPruneLike } from ".";
 import type { AreaComp } from "../../ecs/components/physics/area";
 import type { GameObj } from "../../types";
+import type { SweepAndPruneLike } from ".";
 
 /**
  * Left or right edge of an object's bbox
@@ -26,7 +26,10 @@ export class SweepAndPruneHorizontal implements SweepAndPruneLike {
 
     constructor() {
         this.edges = [];
-        this.objects = new Map<GameObj<AreaComp>, [HorizontalEdge, HorizontalEdge]>();
+        this.objects = new Map<
+            GameObj<AreaComp>,
+            [HorizontalEdge, HorizontalEdge]
+        >();
     }
 
     /**
@@ -84,7 +87,11 @@ export class SweepAndPruneHorizontal implements SweepAndPruneLike {
     /**
      * Iterates all object pairs which potentially collide
      */
-    *[Symbol.iterator](): Generator<[GameObj<AreaComp>, GameObj<AreaComp>], void, void> {
+    *[Symbol.iterator](): Generator<
+        [GameObj<AreaComp>, GameObj<AreaComp>],
+        void,
+        void
+    > {
         const touching = new Set<GameObj<AreaComp>>();
 
         for (const edge of this.edges) {
@@ -125,7 +132,10 @@ export class SweepAndPruneVertical implements SweepAndPruneLike {
 
     constructor() {
         this.edges = [];
-        this.objects = new Map<GameObj<AreaComp>, [VerticalEdge, VerticalEdge]>();
+        this.objects = new Map<
+            GameObj<AreaComp>,
+            [VerticalEdge, VerticalEdge]
+        >();
     }
 
     /**
@@ -183,7 +193,11 @@ export class SweepAndPruneVertical implements SweepAndPruneLike {
     /**
      * Iterates all object pairs which potentially collide
      */
-    *[Symbol.iterator](): Generator<[GameObj<AreaComp>, GameObj<AreaComp>], void, void> {
+    *[Symbol.iterator](): Generator<
+        [GameObj<AreaComp>, GameObj<AreaComp>],
+        void,
+        void
+    > {
         const touching = new Set<GameObj<AreaComp>>();
 
         for (const edge of this.edges) {
@@ -227,16 +241,30 @@ export class SweepAndPruneBoth implements SweepAndPruneLike {
         this.vertical.update();
     }
 
-    *[Symbol.iterator](): Generator<[GameObj<AreaComp>, GameObj<AreaComp>], void, void> {
+    *[Symbol.iterator](): Generator<
+        [GameObj<AreaComp>, GameObj<AreaComp>],
+        void,
+        void
+    > {
         function hash(pair: [GameObj<AreaComp>, GameObj<AreaComp>]) {
-            const [l, h] = pair[0].id! < pair[1].id! ? [pair[0].id!, pair[1].id!] : [pair[1].id!, pair[0].id!];
+            const [l, h] = pair[0].id! < pair[1].id!
+                ? [pair[0].id!, pair[1].id!]
+                : [pair[1].id!, pair[0].id!];
             return `${l}-${h}`;
         }
         const horizontalColliding = [...this.horizontal];
         const verticalColliding = [...this.vertical];
-        const horizontalMap = new Map<string, [GameObj<AreaComp>, GameObj<AreaComp>]>(horizontalColliding.map(c => [hash(c), c]));
-        const verticalMap = new Map<string, [GameObj<AreaComp>, GameObj<AreaComp>]>(verticalColliding.map(c => [hash(c), c]));
-        const intersection = new Set(horizontalMap.keys()).intersection(new Set(verticalMap.keys()));
+        const horizontalMap = new Map<
+            string,
+            [GameObj<AreaComp>, GameObj<AreaComp>]
+        >(horizontalColliding.map(c => [hash(c), c]));
+        const verticalMap = new Map<
+            string,
+            [GameObj<AreaComp>, GameObj<AreaComp>]
+        >(verticalColliding.map(c => [hash(c), c]));
+        const intersection = new Set(horizontalMap.keys()).intersection(
+            new Set(verticalMap.keys()),
+        );
 
         for (let key in intersection) {
             yield horizontalMap.get(key)!;

@@ -7,9 +7,13 @@ export interface SweepAndPruneLike {
     clear(): void;
     update(): void;
     clean?(): void;
-    [Symbol.iterator](): Generator<[GameObj<AreaComp>, GameObj<AreaComp>], void, void>;
+    [Symbol.iterator](): Generator<
+        [GameObj<AreaComp>, GameObj<AreaComp>],
+        void,
+        void
+    >;
 }
 
-export * from "./sweepandprune";
-export * from "./quadtree";
 export * from "./hashgrid";
+export * from "./quadtree";
+export * from "./sweepandprune";

@@ -340,7 +340,8 @@ const kaplay = <
         debug,
     } = _k;
 
-    const { checkFrame, switchBroadPhaseAlgo, cleanBroadPhase } = getCollisionSystem();
+    const { checkFrame, switchBroadPhaseAlgo, cleanBroadPhase } =
+        getCollisionSystem();
 
     system("collision", checkFrame, [
         LCEvents.AfterFixedUpdate,
@@ -1008,7 +1009,7 @@ const kaplay = <
         cancel: () => EVENT_CANCEL_SYMBOL,
         BlendMode,
         switchBroadPhaseAlgo,
-        cleanBroadPhase
+        cleanBroadPhase,
     };
 
     _k.k = ctx;
@@ -1022,7 +1023,7 @@ const kaplay = <
     // export everything to window if global is set
     if (gopt.global !== false) {
         for (const key in ctx) {
-            (<any>window[<any>key]) = ctx[key as keyof KAPLAYCtx];
+            (<any> window[<any> key]) = ctx[key as keyof KAPLAYCtx];
         }
     }
 

@@ -7,7 +7,11 @@ import { Rect, type Vec2, vec2 } from "../../math/math";
 import type { SweepAndPruneLike } from "../../math/spatial";
 import { HashGrid } from "../../math/spatial/hashgrid";
 import { Quadtree } from "../../math/spatial/quadtree";
-import { SweepAndPruneBoth, SweepAndPruneHorizontal, SweepAndPruneVertical } from "../../math/spatial/sweepandprune";
+import {
+    SweepAndPruneBoth,
+    SweepAndPruneHorizontal,
+    SweepAndPruneVertical,
+} from "../../math/spatial/sweepandprune";
 import type { GameObj, KAPLAYOpt } from "../../types";
 import { type AreaComp, usesArea } from "../components/physics/area";
 
@@ -145,11 +149,20 @@ export const getCollisionSystem = () => {
         if (sap) sap.clear();
         sap = (() => {
             switch (algo) {
-                case "both": return new SweepAndPruneBoth();
-                case "vertical": return new SweepAndPruneVertical();
-                case "hashgrid": return new HashGrid(gopt);
-                case "quadtree": return new Quadtree(new Rect(vec2(0), width(), height()), gopt.qtMaxObjects, gopt.qtMaxLevels);
-                default: return new SweepAndPruneHorizontal();
+                case "both":
+                    return new SweepAndPruneBoth();
+                case "vertical":
+                    return new SweepAndPruneVertical();
+                case "hashgrid":
+                    return new HashGrid(gopt);
+                case "quadtree":
+                    return new Quadtree(
+                        new Rect(vec2(0), width(), height()),
+                        gopt.qtMaxObjects,
+                        gopt.qtMaxLevels,
+                    );
+                default:
+                    return new SweepAndPruneHorizontal();
             }
         })();
         sapInit = false;

@@ -39,7 +39,8 @@ export const WorldAreaDirty = 8;
 export const BBoxDirty = 16;
 export const AllDirty = 31;
 export const AreaDirty = LocalAreaDirty | WorldAreaDirty | BBoxDirty;
-export const LocalTransformUpdated = LocalAreaDirty | WorldTransformDirty | WorldAreaDirty
+export const LocalTransformUpdated = LocalAreaDirty | WorldTransformDirty
+    | WorldAreaDirty
     | BBoxDirty;
 export const LocalAreaUpdated = WorldAreaDirty | BBoxDirty;
 export const WorldTransformUpdated = WorldAreaDirty | BBoxDirty;
@@ -91,7 +92,10 @@ export function make<T extends CompList<unknown>>(
 
         get localTransform() {
             if (this.dirtyFlags & LocalTransformDirty) {
-                localTransform = calcLocalTransform(this as GameObj<any>, localTransform);
+                localTransform = calcLocalTransform(
+                    this as GameObj<any>,
+                    localTransform,
+                );
 
                 this.dirtyFlags &= ~LocalTransformDirty;
                 this.dirtyFlags |= LocalTransformUpdated;
@@ -105,7 +109,10 @@ export function make<T extends CompList<unknown>>(
                 parentTransform !== this.parent?.worldTransform
                 || this.dirtyFlags & WorldTransformDirty
             ) {
-                worldTransform = calcWorldTransform(this as GameObj<any>, worldTransform);
+                worldTransform = calcWorldTransform(
+                    this as GameObj<any>,
+                    worldTransform,
+                );
                 parentTransform = this.parent?.worldTransform;
 
                 this.dirtyFlags &= ~WorldTransformDirty;
@@ -776,10 +783,14 @@ export function make<T extends CompList<unknown>>(
         ): KEventController {
             const ctrl = ((func) => {
                 switch (name) {
-                    case "fixedUpdate": return fixedUpdateEvents.add(func);
-                    case "update": return updateEvents.add(func);
-                    case "draw": return drawEvents.add(func);
-                    default: return events.on(name, func);
+                    case "fixedUpdate":
+                        return fixedUpdateEvents.add(func);
+                    case "update":
+                        return updateEvents.add(func);
+                    case "draw":
+                        return drawEvents.add(func);
+                    default:
+                        return events.on(name, func);
                 }
             })(action.bind(this));
             if (onCurCompCleanup) {

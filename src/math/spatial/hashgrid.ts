@@ -1,8 +1,8 @@
-import type { SweepAndPruneLike } from ".";
 import { DEF_HASH_GRID_SIZE } from "../../constants";
 import type { AreaComp } from "../../ecs/components/physics/area";
 import type { GameObj } from "../../types";
 import { calcWorldTransform } from "../various";
+import type { SweepAndPruneLike } from ".";
 
 export class HashGrid implements SweepAndPruneLike {
     private cellSize: number;
@@ -39,7 +39,11 @@ export class HashGrid implements SweepAndPruneLike {
     /**
      * Iterates all object pairs which potentially collide
      */
-    *[Symbol.iterator](): Generator<[GameObj<AreaComp>, GameObj<AreaComp>], void, void> {
+    *[Symbol.iterator](): Generator<
+        [GameObj<AreaComp>, GameObj<AreaComp>],
+        void,
+        void
+    > {
         for (const obj of this.objects) {
             const area = obj.worldArea();
             const bbox = area.bbox();
