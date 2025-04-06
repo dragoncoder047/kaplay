@@ -1,6 +1,6 @@
 import type { SweepAndPruneLike } from ".";
-import type { AreaComp } from "../../components/physics/area";
 import { DEF_HASH_GRID_SIZE } from "../../constants";
+import type { AreaComp } from "../../ecs/components/physics/area";
 import type { GameObj } from "../../types";
 import { calcWorldTransform } from "../various";
 

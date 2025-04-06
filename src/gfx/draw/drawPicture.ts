@@ -1,8 +1,7 @@
-import type { Shader, Uniform } from "../../assets";
-import { blend } from "../../components";
-import { getCamTransform } from "../../game";
+import type { Shader, Uniform } from "../../assets/shader";
+import { getCamTransform } from "../../game/camera";
 import { _k } from "../../kaplay";
-import { Mat4 } from "../../math";
+import { Mat4 } from "../../math/math";
 import type { BlendMode, RenderProps } from "../../types";
 import { Mesh, type Texture } from "../gfx";
 import { height, width } from "../stack";
@@ -216,8 +215,6 @@ export function endPicture(): Picture {
         picture.vertices,
         picture.indices,
     );
-
-    console.log(picture);
 
     return picture;
 }

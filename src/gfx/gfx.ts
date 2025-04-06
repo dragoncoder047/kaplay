@@ -1,14 +1,14 @@
-import type { Shader, Uniform } from "../assets";
-import { getCamTransform } from "../game";
-import { Picture } from "../gfx/draw/drawPicture";
-import { Mat23, Mat4 } from "../math";
+import type { Shader, Uniform } from "../assets/shader";
+import { getCamTransform } from "../game/camera";
+import { Mat4 } from "../math/math";
 import {
     BlendMode,
     type ImageSource,
-    type TexFilter,
+    type KAPLAYOpt,
     type TextureOpt,
 } from "../types";
-import { deepEq } from "../utils/";
+import { deepEq } from "../utils/deepEq";
+import type { Picture } from "./draw/drawPicture";
 
 export type GfxCtx = ReturnType<typeof initGfx>;
 
@@ -461,9 +461,7 @@ function genStack<T>(setFunc: (item: T | null) => void) {
     return [push, pop, cur] as const;
 }
 
-export function initGfx(gl: WebGLRenderingContext, opts: {
-    texFilter?: TexFilter;
-} = {}) {
+export function initGfx(gl: WebGLRenderingContext, opts: KAPLAYOpt = {}) {
     const gc: Array<() => void> = [];
 
     function onDestroy(action: () => unknown) {

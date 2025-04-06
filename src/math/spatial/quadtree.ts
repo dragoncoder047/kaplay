@@ -1,5 +1,5 @@
 import type { SweepAndPruneLike } from "."
-import type { AreaComp } from "../../components"
+import type { AreaComp } from "../../ecs/components/physics/area"
 import type { GameObj } from "../../types"
 import { Rect, vec2 } from "../math"
 

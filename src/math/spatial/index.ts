@@ -1,4 +1,4 @@
-import type { AreaComp } from "../..";
+import type { AreaComp } from "../../ecs/components/physics/area";
 import type { GameObj } from "../../types";
 
 export interface SweepAndPruneLike {

@@ -1,6 +1,6 @@
 import { describe, expectTypeOf, test } from "vitest";
-import type { KAPLAYCtx } from "../../src";
 import { kaplay } from "../../src/kaplay";
+import type { KAPLAYCtx } from "../../src/types";
 
 type ImplicitTestPlug = ReturnType<typeof implicitTestPlug>;
 
@@ -11,9 +11,9 @@ const implicitTestPlug = (k: KAPLAYCtx) => ({
 });
 
 describe("Type Inference from plugins", () => {
-    // Infered Plugin
+    // Inferred Plugin
 
-    test("type of plugin should be infered from kaplay({ plugins: [ implicitTestPlug ] })", () => {
+    test("type of plugin should be inferred from kaplay({ plugins: [ implicitTestPlug ] })", () => {
         const k = kaplay({ plugins: [implicitTestPlug] });
 
         k.getVersion;

@@ -10,8 +10,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref }}
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
@@ -20,14 +18,11 @@ jobs:
         name: Install pnpm
         with:
           run_install: false
-      - name: Install dependencies
-        run: pnpm install
+      - name: Install dprint
+        run: pnpm i dprint
       - name: Run Formatter
         run: pnpm run fmt
-      - name: Commit and Push
+      - name: Check if it's formatted
         run: |
-          git config user.name "Bag Bot"
-          git config user.email "<${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
-          git add .
-          git commit -m "style: fmt" || echo "No changes to commit"
-          git push origin HEAD:${{ github.head_ref }}
+          git diff --exit-code || (echo "Please format your code with pnpm fmt." && exit 1)
+          

@@ -1,7 +1,6 @@
 import type { SweepAndPruneLike } from ".";
-import type { AreaComp } from "../../components";
+import type { AreaComp } from "../../ecs/components/physics/area";
 import type { GameObj } from "../../types";
-import { calcWorldTransform } from "../various";
 
 /**
  * Left or right edge of an object's bbox
