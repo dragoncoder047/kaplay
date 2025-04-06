@@ -276,5 +276,7 @@ export const getCollisionSystem = () => {
 
     return {
         checkFrame,
+        cleanBroadPhase,
+        switchBroadPhaseAlgo,
     };
 };
