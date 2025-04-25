@@ -315,7 +315,7 @@ scene("battle", () => {
     });
 
     boss.onHurt(() => {
-        healthbar.set(boss.hp());
+        healthbar.set(boss.hp);
     });
 
     boss.onDeath(() => {
