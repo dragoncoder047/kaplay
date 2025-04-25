@@ -59,14 +59,21 @@ export const getCollisionSystem = () => {
         }
     }
 
+    function isPaused(obj: GameObj): boolean {
+        return obj.paused || !!(obj.parent && isPaused(obj.parent));
+    }
+
     function narrowPhase(
         obj: GameObj<AreaComp>,
         other: GameObj<AreaComp>,
     ): boolean {
-        if (other.paused) return false;
-        if (!other.exists()) return false;
-        if (!obj.collisionIgnore.isDisjointFrom(other.tagsAsSet)) return false;
-        if (!other.collisionIgnore.isDisjointFrom(obj.tagsAsSet)) return false;
+        if (isPaused(other)
+            || isPaused(obj)
+            || obj === other
+            || !other.exists()
+            || !obj.collisionIgnore.isDisjointFrom(other.tagsAsSet)
+            || !other.collisionIgnore.isDisjointFrom(obj.tagsAsSet))
+            return false;
         const res = gjkShapeIntersection(
             obj.worldArea(),
             other.worldArea(),
