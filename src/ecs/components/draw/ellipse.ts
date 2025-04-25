@@ -68,7 +68,7 @@ export function ellipse(
         },
         renderArea(this: GameObj<AnchorComp | EllipseComp>) {
             if (!_shape) {
-                return new Ellipse(
+                _shape = new Ellipse(
                     new Vec2(0),
                     _radiusX,
                     _radiusY,

@@ -63,7 +63,7 @@ export function areaEffector(opts: AreaEffectorCompOpt): AreaEffectorComp {
                 obj.addForce(
                     this.useGlobalAngle
                         ? this.force
-                        : this.force.rotate(this.transform.getRotation()),
+                        : this.force.rotate(this.localTransform.getRotation()),
                 );
                 if (this.linearDrag) {
                     obj.addForce(obj.vel.scale(-this.linearDrag));
@@ -142,7 +142,7 @@ export function constantForce(opts: ConstantForceCompOpt): ConstantForceComp {
                 this.addForce(
                     this.useGlobalAngle
                         ? this.force
-                        : this.force.rotate(this.transform.getRotation()),
+                        : this.force.rotate(this.localTransform.getRotation()),
                 );
             }
         },

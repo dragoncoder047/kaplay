@@ -155,7 +155,7 @@ add([
 ]);
 
 function getGlobalShape(s) {
-    const t = s.transform;
+    const t = s.worldTransform;
     return s.getShape().transform(t);
 }
 

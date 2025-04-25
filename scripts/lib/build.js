@@ -30,7 +30,8 @@ const kaboomBuild = fmts("kaboom")[0];
 export const config = {
     bundle: true,
     minify: true,
-    keepNames: false,
+    keepNames: true,
+    sourcemap: true,
     // MORE MINIFICATION
     minifyIdentifiers: true,
     minifySyntax: true,

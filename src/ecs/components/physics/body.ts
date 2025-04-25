@@ -3,8 +3,8 @@ import type { KEventController } from "../../../events/events";
 import { getGravityDirection } from "../../../game/gravity";
 import { _k } from "../../../kaplay";
 import { lerp, type Vec2, vec2 } from "../../../math/math";
-import { calcTransform } from "../../../math/various";
 import type { Collision, Comp, GameObj } from "../../../types";
+import { AllDirty } from "../../make";
 import type { PosComp } from "../transform/pos";
 import type { AreaComp } from "./area";
 
@@ -238,8 +238,6 @@ export function body(opt: BodyCompOpt = {}): BodyComp {
                             other.pos = other.pos.add(
                                 col.displacement.scale(-this.mass / tmass),
                             );
-                            calcTransform(this, this.transform);
-                            calcTransform(other, other.transform);
                         }
                         else {
                             // if one is static and on is not, resolve the non static one
@@ -249,7 +247,6 @@ export function body(opt: BodyCompOpt = {}): BodyComp {
                             col2.source.pos = col2.source.pos.add(
                                 col2.displacement,
                             );
-                            calcTransform(col2.source, col2.source.transform);
                         }
 
                         col.resolved = true;
@@ -350,6 +347,7 @@ export function body(opt: BodyCompOpt = {}): BodyComp {
                         nextPhysicsPos!.x,
                         dt / _k.k.fixedDt(),
                     );
+                    this.dirtyFlags = AllDirty;
                     // Copy to check for changes
                     prevDrawPos.x = this.pos.x;
                 }
@@ -360,6 +358,7 @@ export function body(opt: BodyCompOpt = {}): BodyComp {
                         nextPhysicsPos!.y,
                         dt / _k.k.fixedDt(),
                     );
+                    this.dirtyFlags = AllDirty;
                     // Copy to check for changes
                     prevDrawPos.y = this.pos.y;
                 }
@@ -371,9 +370,11 @@ export function body(opt: BodyCompOpt = {}): BodyComp {
             if (prevPhysicsPos) {
                 if (this.pos.x == prevDrawPos.x) {
                     this.pos.x = prevPhysicsPos.x;
+                    this.dirtyFlags = AllDirty;
                 }
                 if (this.pos.y == prevDrawPos.y) {
                     this.pos.y = prevPhysicsPos.y;
+                    this.dirtyFlags = AllDirty;
                 }
                 prevPhysicsPos = null;
             }

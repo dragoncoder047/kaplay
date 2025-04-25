@@ -13,13 +13,11 @@ import {
     multScaleV,
     multTranslateV,
     popTransform,
-    pushMatrix,
-    pushTransform,
-    storeMatrix,
+    pushTransform
 } from "../gfx/stack";
 import { _k } from "../kaplay";
 import { Mat23, Vec2 } from "../math/math";
-import { calcTransform } from "../math/various";
+import { calcLocalTransform, calcWorldTransform } from "../math/various";
 import type {
     Comp,
     CompList,
@@ -37,6 +35,20 @@ import type { PosComp } from "./components/transform/pos";
 import type { RotateComp } from "./components/transform/rotate";
 import type { ScaleComp } from "./components/transform/scale";
 
+
+export const LocalTransformDirty = 1;
+export const LocalAreaDirty = 2;
+export const WorldTransformDirty = 4;
+export const WorldAreaDirty = 8;
+export const BBoxDirty = 16;
+export const AllDirty = 31;
+export const AreaDirty = LocalAreaDirty | WorldAreaDirty | BBoxDirty;
+export const LocalTransformUpdated = LocalAreaDirty | WorldTransformDirty | WorldAreaDirty
+    | BBoxDirty;
+export const LocalAreaUpdated = WorldAreaDirty | BBoxDirty;
+export const WorldTransformUpdated = WorldAreaDirty | BBoxDirty;
+export const WorldAreaUpdated = BBoxDirty;
+
 export enum KeepFlags {
     Pos = 1,
     Angle = 2,
@@ -46,6 +58,15 @@ export enum KeepFlags {
 
 export type SetParentOpt = {
     keep: KeepFlags;
+};
+
+const TRANSFORM_AFFECTING_PROPS = {
+    "pos": AllDirty,
+    "angle": AllDirty,
+    "scale": AllDirty,
+    "anchor": AreaDirty,
+    "width": AllDirty,
+    "height": AllDirty
 };
 
 type AppEvents = keyof {
@@ -82,13 +103,44 @@ export function make<T extends CompList<unknown>>(
     let paused = false;
     let _parent: GameObj;
 
+    let localTransform: Mat23 = new Mat23();
+    let worldTransform: Mat23 = new Mat23();
+    let parentTransform: Mat23 = new Mat23();
+
     // the game object without the event methods, added later
     const obj = {
         id: id,
         // TODO: a nice way to hide / pause when add()-ing
         hidden: false,
-        transform: new Mat23(),
         children: [],
+
+        dirtyFlags: AllDirty,
+
+        get localTransform() {
+            if (this.dirtyFlags & LocalTransformDirty) {
+                localTransform = calcLocalTransform(this as GameObj<any>, localTransform);
+
+                this.dirtyFlags &= ~LocalTransformDirty;
+                this.dirtyFlags |= LocalTransformUpdated;
+            }
+
+            return localTransform;
+        },
+
+        get worldTransform() {
+            if (
+                parentTransform !== this.parent?.worldTransform
+                || this.dirtyFlags & WorldTransformDirty
+            ) {
+                worldTransform = calcWorldTransform(this as GameObj<any>, worldTransform);
+                parentTransform = this.parent?.worldTransform!;
+
+                this.dirtyFlags &= ~WorldTransformDirty;
+                this.dirtyFlags |= WorldTransformUpdated;
+            }
+
+            return worldTransform;
+        },
 
         get parent() {
             return _parent!;
@@ -114,8 +166,8 @@ export function make<T extends CompList<unknown>>(
             opt: SetParentOpt,
         ) {
             if (_parent === p) return;
-            const oldTransform = _parent.transform;
-            const newTransform = p.transform;
+            const oldTransform = _parent.worldTransform;
+            const newTransform = p.worldTransform;
             if ((opt.keep & KeepFlags.Pos) && this.pos !== undefined) {
                 oldTransform.transformPoint(this.pos, this.pos);
                 newTransform.inverse.transformPoint(this.pos, this.pos);
@@ -160,7 +212,7 @@ export function make<T extends CompList<unknown>>(
                 );
             }
             obj.parent = this;
-            calcTransform(obj, obj.transform);
+            obj.dirtyFlags = AllDirty;
 
             try {
                 obj.trigger("add", obj);
@@ -238,24 +290,15 @@ export function make<T extends CompList<unknown>>(
             >,
         ) {
             if (this.hidden) return;
+            pushTransform();
 
             const objects = new Array<GameObj<any>>();
-
-            pushTransform();
-            if (this.pos) multTranslateV(this.pos);
-            if (this.angle) multRotate(this.angle);
-            if (this.scale) multScaleV(this.scale);
-
-            if (!this.transform) this.transform = new Mat23();
-            storeMatrix(this.transform);
 
             // For each child call collect
             for (let i = 0; i < this.children.length; i++) {
                 if (this.children[i].hidden) continue;
                 this.children[i].collectAndTransform(objects);
             }
-
-            popTransform();
 
             // Sort objects on layer, then z
             objects.sort((o1, o2) => {
@@ -277,13 +320,11 @@ export function make<T extends CompList<unknown>>(
                     // Draw children masked
                     const f = _k.gfx.fixed;
                     // We push once, then update the current transform only
-                    pushTransform();
                     for (let i = 0; i < objects.length; i++) {
                         _k.gfx.fixed = objects[i].fixed;
-                        loadMatrix(objects[i].parent!.transform);
+                        loadMatrix(objects[i].worldTransform);
                         objects[i].drawEvents.trigger();
                     }
-                    popTransform();
                     _k.gfx.fixed = f;
                 }, () => {
                     // Draw mask
@@ -307,25 +348,24 @@ export function make<T extends CompList<unknown>>(
                 if (!this.target?.refreshOnly || !this.target?.isFresh) {
                     // Parent is drawn before children if !childrenOnly
                     if (!this.target?.childrenOnly) {
+                        loadMatrix(this.worldTransform);
                         drawEvents.trigger();
                     }
                     // Draw children
                     const f = _k.gfx.fixed;
-                    pushTransform();
                     for (let i = 0; i < objects.length; i++) {
                         // An object with a mask is drawn at draw time, but the transform still needs to be calculated,
                         // so we push the parent's transform and pretend we are
                         _k.gfx.fixed = objects[i].fixed;
                         if (objects[i].mask) {
-                            loadMatrix(objects[i].parent!.transform);
+                            loadMatrix(objects[i].parent!.worldTransform);
                             objects[i].drawTree();
                         }
                         else {
-                            loadMatrix(objects[i].transform);
+                            loadMatrix(objects[i].worldTransform);
                             objects[i].drawEvents.trigger();
                         }
                     }
-                    popTransform();
                     _k.gfx.fixed = f;
                 }
 
@@ -350,10 +390,11 @@ export function make<T extends CompList<unknown>>(
                 // If children only flag is on
                 if (this.target?.childrenOnly) {
                     // Parent is drawn on screen, children are drawn in target
-                    loadMatrix(this.transform);
+                    loadMatrix(this.worldTransform);
                     drawEvents.trigger();
                 }
             }
+            popTransform();
         },
 
         /**
@@ -368,12 +409,9 @@ export function make<T extends CompList<unknown>>(
             objects: GameObj<any>[],
         ) {
             pushTransform();
-            if (this.pos) multTranslateV(this.pos);
-            if (this.angle) multRotate(this.angle);
-            if (this.scale) multScaleV(this.scale);
-
-            if (!this.transform) this.transform = new Mat23();
-            storeMatrix(this.transform);
+            // if (this.pos) multTranslateV(this.pos);
+            // if (this.angle) multRotate(this.angle);
+            // if (this.scale) multScaleV(this.scale);
 
             // Add to objects
             objects.push(this);
@@ -469,21 +507,39 @@ export function make<T extends CompList<unknown>>(
                             comp[key]?.();
                             onCurCompCleanup = null;
                         }
-                        : comp[<keyof typeof comp> key];
-                    gc.push(this.on(key, <any> func).cancel);
+                        : comp[<keyof typeof comp>key];
+                    gc.push(this.on(key, <any>func).cancel);
                 }
                 else {
                     // @ts-ignore
                     if (this[key] === undefined) {
                         // Assign comp fields to game obj
                         Object.defineProperty(this, key, {
-                            get: () => comp[<keyof typeof comp> key],
-                            set: (val) => comp[<keyof typeof comp> key] = val,
+                            get: () => comp[<keyof typeof comp>key],
+                            set: Object.keys(TRANSFORM_AFFECTING_PROPS).includes(key) ? (val) => {
+                                if (val instanceof Vec2) {
+                                    val = new Proxy(val, {
+                                        set: (target, prop, value) => {
+                                            (target as any)[prop] = value;
+                                            this.dirtyFlags |= TRANSFORM_AFFECTING_PROPS[key as keyof typeof TRANSFORM_AFFECTING_PROPS];
+                                            return true;
+                                        },
+                                    });
+                                }
+                                this.dirtyFlags |= TRANSFORM_AFFECTING_PROPS[key as keyof typeof TRANSFORM_AFFECTING_PROPS];
+                                comp[<keyof typeof comp>key] = val;
+                            } : (val) => {
+                                comp[<keyof typeof comp>key] = val;
+                            },
                             configurable: true,
                             enumerable: true,
                         });
                         // @ts-ignore
                         gc.push(() => delete this[key]);
+                        // initial value state
+                        if (Object.keys(TRANSFORM_AFFECTING_PROPS).includes(key)) {
+                            this.dirtyFlags |= TRANSFORM_AFFECTING_PROPS[key as keyof typeof TRANSFORM_AFFECTING_PROPS];
+                        }
                     }
                     else {
                         const originalCompId = compStates.values().find(c =>
@@ -491,9 +547,9 @@ export function make<T extends CompList<unknown>>(
                         )?.id;
                         throw new Error(
                             `Duplicate component property: "${key}" while adding component "${comp.id}"`
-                                + (originalCompId
-                                    ? ` (originally added by "${originalCompId}")`
-                                    : ""),
+                            + (originalCompId
+                                ? ` (originally added by "${originalCompId}")`
+                                : ""),
                         );
                     }
                 }
@@ -1005,7 +1061,7 @@ export function make<T extends CompList<unknown>>(
             tagList.push(compOrTag);
         }
         else {
-            const compId = (<Comp> compOrTag).id;
+            const compId = (<Comp>compOrTag).id;
 
             if (compId) {
                 compIds.add(compId);
@@ -1018,7 +1074,7 @@ export function make<T extends CompList<unknown>>(
 
     // Using .use and .tag we trigger onUse and onTag events correctly
     for (const comp of comps) {
-        obj.use(<Comp> comp);
+        obj.use(<Comp>comp);
     }
 
     for (const tag of tagList) {

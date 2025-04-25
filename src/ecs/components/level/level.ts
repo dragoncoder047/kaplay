@@ -6,7 +6,6 @@ import {
     vec2,
     type Vec2Args,
 } from "../../../math/math";
-import { calcTransform } from "../../../math/various";
 import {
     type Comp,
     type CompList,
@@ -14,6 +13,7 @@ import {
     type GameObj,
 } from "../../../types";
 import { BinaryHeap } from "../../../utils/binaryheap";
+import { AllDirty } from "../../make";
 import { pos, type PosComp } from "../transform/pos";
 import { tile } from "./tile";
 
@@ -407,8 +407,7 @@ export function level(map: string[], opt: LevelOpt): LevelComp {
             }
 
             obj.tilePos = p;
-            // Stale, so recalculate
-            calcTransform(obj, obj.transform);
+            obj.dirtyFlags = AllDirty;
 
             if (spatialMap) {
                 insertIntoSpatialMap(obj);
