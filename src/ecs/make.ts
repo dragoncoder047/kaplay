@@ -196,6 +196,10 @@ export function make<T extends CompList<unknown>>(
             return paused;
         },
 
+        get tagsAsSet() {
+            return tags;
+        },
+
         get tags() {
             return Array.from(tags);
         },
