@@ -576,7 +576,7 @@ export const GameObjRawPrototype: Omit<GameObjRaw, AppEvents> = {
         return Array.from(this.tagsAsSet);
     },
 
-    // #enedregion
+    // #endregion
 
     // #region Object
     setParent(
@@ -585,8 +585,8 @@ export const GameObjRawPrototype: Omit<GameObjRaw, AppEvents> = {
         opt: SetParentOpt,
     ) {
         if (this._parent === p) return;
-        const oldTransform = this._parent?.transform;
-        const newTransform = p.transform;
+        const oldTransform = this._parent?.worldTransform;
+        const newTransform = p.worldTransform;
         if ((opt.keep & KeepFlags.Pos) && this.pos !== undefined) {
             oldTransform.transformPointV(this.pos, this.pos);
             newTransform.inverse.transformPointV(this.pos, this.pos);
