@@ -14,16 +14,12 @@ import { beginPicture, endPicture, Picture } from "../../gfx/draw/drawPicture";
 import {
     flush,
     loadMatrix,
-    multRotate,
-    multScaleV,
-    multTranslateV,
     popTransform,
-    pushTransform,
-    storeMatrix,
+    pushTransform
 } from "../../gfx/stack";
 import { _k } from "../../kaplay";
-import { Mat23 } from "../../math/math";
-import { calcTransform } from "../../math/various";
+import { Mat23, Vec2 } from "../../math/math";
+import { calcLocalTransform, calcWorldTransform } from "../../math/various";
 import type {
     Comp,
     CompList,
@@ -38,11 +34,9 @@ import type {
 } from "../../types";
 import type { MaskComp } from "../components/draw/mask";
 import type { FixedComp } from "../components/transform/fixed";
-import type { LayerComp } from "../components/transform/layer";
 import type { PosComp } from "../components/transform/pos";
 import type { RotateComp } from "../components/transform/rotate";
 import type { ScaleComp } from "../components/transform/scale";
-import type { ZComp } from "../components/transform/z";
 import { make } from "./make";
 
 export enum KeepFlags {
@@ -63,60 +57,6 @@ export type SetParentOpt = {
  * @group Game Obj
  */
 export interface GameObjRaw {
-    /**
-     * The unique id of the game obj.
-     */
-    id: GameObjID;
-    /**
-     * Get or set the parent game obj.
-     *
-     * @since v4000.0
-     */
-    parent: GameObj | null;
-    /**
-     * Get all children game objects.
-     *
-     * @readonly
-     * @since v3000.0
-     */
-    children: GameObj[];
-    /**
-     * Get the tags of a game object. For update it, use `tag()` and `untag()`.
-     *
-     * @readonly
-     * @since v3001.0
-     */
-    tags: string[];
-    /**
-     * Calculated transform matrix of a game object.
-     *
-     * @since v3000.0
-     */
-    transform: Mat23;
-    /**
-     * If draw the game obj (run "draw" event or not).
-     *
-     * @since v2000.0
-     */
-    hidden: boolean;
-    /**
-     * If update the game obj (run "update" event or not).
-     *
-     * @since v2000.0
-     */
-    paused: boolean;
-    /**
-     * The canvas to draw this game object on
-     *
-     * @since v3001.0
-     */
-    target?: RenderTarget;
-    /**
-     * Set the parent game obj with additional options.
-     *
-     * @since v4000.0
-     */
-    setParent(p: GameObj, opt: SetParentOpt): void;
     /**
      * Add a child.
      *
@@ -152,31 +92,11 @@ export interface GameObjRaw {
      */
     removeAll(tag: Tag): void;
     /**
-     * Remove this game obj from scene.
-     *
-     * @since v2000.0
-     */
-    destroy(): void;
-    /**
      * Remove all children.
      *
      * @since v3000.0
      */
     removeAll(): void;
-    /**
-     * If game obj is attached to the scene graph.
-     *
-     * @returns true if attached, false otherwise.
-     * @since v2000.0
-     */
-    exists(): boolean;
-    /**
-     * Check if is an ancestor (recursive parent) of another game object
-     *
-     * @returns true if is ancestor, false otherwise.
-     * @since v3000.0
-     */
-    isAncestorOf(obj: GameObj): boolean;
     /**
      * Get a list of all game objs with certain tag.
      *
@@ -194,11 +114,38 @@ export interface GameObjRaw {
      */
     query(opt: QueryOpt): GameObj[];
     /**
-     * Update this game object and all children game objects.
+     * Get or set the parent game obj.
      *
      * @since v3000.0
      */
-    update(): void;
+    parent: GameObj | null;
+    /**
+     * Set the parent game obj.
+     *
+     * @since v4000.0
+     */
+    setParent(p: GameObj, opt: SetParentOpt): void;
+    /**
+     * @readonly
+     * Get all children game objects.
+     *
+     * @since v3000.0
+     */
+    children: GameObj[];
+    /**
+     * @readonly
+     * Get the tags of a game object. For update it, use `tag()` and `untag()`.
+     *
+     * @since v3001.0
+     */
+    tags: string[];
+    /**
+     * @readonly
+     * Get the tags of a game object as a set, for faster comparison.
+     *
+     * @since v4000.0
+     */
+    tagsAsSet: Set<string>;
     /**
      * Update this game object and all children game objects.
      *
@@ -206,28 +153,26 @@ export interface GameObjRaw {
      */
     fixedUpdate(): void;
     /**
+     * Update this game object and all children game objects.
+     *
+     * @since v3000.0
+     */
+    update(): void;
+    /**
      * Draw this game object and all children game objects.
      *
      * @since v3000.0
      */
     draw(): void;
     drawTree(): void;
-    /**
-     * Gather debug info of all comps.
-     *
-     * @since v2000.0
-     */
-    inspect(): GameObjInspect;
+    collectAndTransform(objects: GameObj<any>[]): void;
     /**
      * Draw debug info in inspect mode
      *
      * @since v3000.0
      */
     drawInspect: () => void;
-    /**
-     * This method is called to transform and collect objects which should be drawn layered
-     */
-    collectAndTransform(objects: GameObj<any>[]): void;
+    clearEvents: () => void;
     /**
      * Add a component.
      *
@@ -243,7 +188,7 @@ export interface GameObjRaw {
      *
      * @since v2000.0
      */
-    use(comp: Comp): void;
+    use(comp: Comp | Tag): void;
     /**
      * Remove a component with its id (the component name)
      *
@@ -257,7 +202,7 @@ export interface GameObjRaw {
      *
      * @since v2000.0
      */
-    unuse(comp: string): void;
+    unuse(comp: Tag): void;
     /**
      * Check if game object has a certain component.
      *
@@ -281,14 +226,6 @@ export interface GameObjRaw {
      * @experimental This feature is in experimental phase, it will be fully released in v3001.1.0
      */
     has(compId: string | string[], op?: "and" | "or"): boolean;
-    /**
-     * Get state for a specific comp.
-     *
-     * @param id - The component id.
-     *
-     * @since v2000.0
-     */
-    c(id: string): Comp | null;
     /**
      * Add a tag(s) to the game obj.
      *
@@ -358,9 +295,25 @@ export interface GameObjRaw {
      */
     trigger(event: string, ...args: any): void;
     /**
-     * Clear all events.
+     * Remove the game obj from scene.
+     *
+     * @since v2000.0
      */
-    clearEvents: () => void;
+    destroy(): void;
+    /**
+     * Get state for a specific comp.
+     *
+     * @param id - The component id.
+     *
+     * @since v2000.0
+     */
+    c(id: string): Comp | null;
+    /**
+     * Gather debug info of all comps.
+     *
+     * @since v2000.0
+     */
+    inspect(): GameObjInspect;
     /**
      * Register an event that runs when the game obj is added to the scene.
      *
@@ -424,6 +377,60 @@ export interface GameObjRaw {
      * @since v4000.0
      */
     onUntag(action: (tag: string) => void): KEventController;
+    /**
+     * If game obj is attached to the scene graph.
+     *
+     * @returns true if attached, false otherwise.
+     * @since v2000.0
+     */
+    exists(): boolean;
+    /**
+     * Check if is an ancestor (recursive parent) of another game object
+     *
+     * @returns true if is ancestor, false otherwise.
+     * @since v3000.0
+     */
+    isAncestorOf(obj: GameObj): boolean;
+    /**
+     * Calculated transform matrix of a game object, relative to the world.
+     *
+     * @since v4000.0
+     */
+    readonly worldTransform: Mat23;
+    /**
+     * Calculated transform matrix of a game object, relative to this.
+     *
+     * @since v4000.0
+     */
+    readonly localTransform: Mat23;
+    /**
+     * Don't touch this
+     */
+    _dirtyFlags: number;
+    /**
+     * If draw the game obj (run "draw" event or not).
+     *
+     * @since v2000.0
+     */
+    hidden: boolean;
+    /**
+     * If update the game obj (run "update" event or not).
+     *
+     * @since v2000.0
+     */
+    paused: boolean;
+    /**
+     * A unique number ID for each game object.
+     *
+     * @since v2000.0
+     */
+    id: GameObjID | null;
+    /**
+     * The canvas to draw this game object on
+     *
+     * @since v3001.0
+     */
+    target?: RenderTarget;
     onKeyDown: KAPLAYCtx["onKeyDown"];
     onKeyPress: KAPLAYCtx["onKeyPress"];
     onKeyPressRepeat: KAPLAYCtx["onKeyPressRepeat"];
@@ -457,13 +464,38 @@ export interface GameObjRaw {
     _drawEvents: KEvent<[]>;
     _inputEvents: KEventController[];
     _onCurCompCleanup: Function | null;
-    _tags: Set<Tag>;
+    _localTransform: Mat23 | null;
+    _worldTransform: Mat23 | null;
+    _parentTransform: Mat23 | null;
 }
 
 type GameObjTransform = GameObj<PosComp | RotateComp | ScaleComp>;
 type GameObjCamTransform = GameObj<
     PosComp | RotateComp | ScaleComp | FixedComp | MaskComp
 >;
+
+
+export const LocalTransformDirty = 1;
+export const LocalAreaDirty = 2;
+export const WorldTransformDirty = 4;
+export const WorldAreaDirty = 8;
+export const BBoxDirty = 16;
+export const AllDirty = 31;
+export const AreaDirty = LocalAreaDirty | WorldAreaDirty | BBoxDirty;
+export const LocalTransformUpdated = LocalAreaDirty | WorldTransformDirty | WorldAreaDirty
+    | BBoxDirty;
+export const LocalAreaUpdated = WorldAreaDirty | BBoxDirty;
+export const WorldTransformUpdated = WorldAreaDirty | BBoxDirty;
+export const WorldAreaUpdated = BBoxDirty;
+
+const TRANSFORM_AFFECTING_PROPS = {
+    "pos": AllDirty,
+    "angle": AllDirty,
+    "scale": AllDirty,
+    "anchor": AreaDirty,
+    "width": AllDirty,
+    "height": AllDirty
+};
 
 export const GameObjRawPrototype: Omit<GameObjRaw, AppEvents> = {
     // This chain of `as any`, is because we never should use this object
@@ -479,15 +511,44 @@ export const GameObjRawPrototype: Omit<GameObjRaw, AppEvents> = {
     _inputEvents: null as any,
     _onCurCompCleanup: null as any,
     _parent: null as any,
-    _tags: null as any,
+    tagsAsSet: null as any,
     _updateEvents: null as any,
     _drawEvents: null as any,
     children: null as any,
     hidden: null as any,
     id: null as any,
     paused: null as any,
-    transform: null as any,
     target: null as any,
+    _localTransform: null as any,
+    _worldTransform: null as any,
+    _parentTransform: null as any,
+    _dirtyFlags: null as any,
+
+    get localTransform() {
+        if (this._dirtyFlags & LocalTransformDirty) {
+            this._localTransform = calcLocalTransform(this as GameObj<any>, this._localTransform!);
+
+            this._dirtyFlags &= ~LocalTransformDirty;
+            this._dirtyFlags |= LocalTransformUpdated;
+        }
+
+        return this._localTransform!;
+    },
+
+    get worldTransform() {
+        if (
+            this._parentTransform !== this.parent?.worldTransform
+            || this._dirtyFlags & WorldTransformDirty
+        ) {
+            this._worldTransform = calcWorldTransform(this as GameObj<any>, this._worldTransform!);
+            this._parentTransform = this.parent?.worldTransform!;
+
+            this._dirtyFlags &= ~WorldTransformDirty;
+            this._dirtyFlags |= WorldTransformUpdated;
+        }
+
+        return this._worldTransform!;
+    },
 
     // #region Setters and Getters
     set parent(p: GameObj) {
@@ -512,7 +573,7 @@ export const GameObjRawPrototype: Omit<GameObjRaw, AppEvents> = {
     },
 
     get tags() {
-        return Array.from(this._tags);
+        return Array.from(this.tagsAsSet);
     },
 
     // #enedregion
@@ -555,8 +616,7 @@ export const GameObjRawPrototype: Omit<GameObjRaw, AppEvents> = {
         }
 
         obj.parent = this;
-
-        calcTransform(obj, obj.transform);
+        obj._dirtyFlags = AllDirty;
 
         try {
             obj.trigger("add", obj);
@@ -837,26 +897,15 @@ export const GameObjRawPrototype: Omit<GameObjRaw, AppEvents> = {
 
     drawTree(this: GameObjCamTransform) {
         if (this.hidden) return;
-
-        const objects = new Array<
-            GameObj<LayerComp | ZComp | FixedComp | MaskComp>
-        >();
-
         pushTransform();
-        if (this.pos) multTranslateV(this.pos);
-        if (this.angle) multRotate(this.angle);
-        if (this.scale) multScaleV(this.scale);
 
-        if (!this.transform) this.transform = new Mat23();
-        storeMatrix(this.transform);
+        const objects = new Array<GameObj<any>>();
 
         // For each child call collect
         for (let i = 0; i < this.children.length; i++) {
             if (this.children[i].hidden) continue;
             this.children[i].collectAndTransform(objects);
         }
-
-        popTransform();
 
         // Sort objects on layer, then z
         objects.sort((o1, o2) => {
@@ -878,13 +927,11 @@ export const GameObjRawPrototype: Omit<GameObjRaw, AppEvents> = {
                 // Draw children masked
                 const f = _k.gfx.fixed;
                 // We push once, then update the current transform only
-                pushTransform();
                 for (let i = 0; i < objects.length; i++) {
                     _k.gfx.fixed = objects[i].fixed;
-                    loadMatrix(objects[i].parent!.transform);
-                    objects[i]._drawEvents.trigger();
+                    loadMatrix(objects[i].worldTransform);
+                    objects[i].drawEvents.trigger();
                 }
-                popTransform();
                 _k.gfx.fixed = f;
             }, () => {
                 // Draw mask
@@ -908,25 +955,24 @@ export const GameObjRawPrototype: Omit<GameObjRaw, AppEvents> = {
             if (!this.target?.refreshOnly || !this.target?.isFresh) {
                 // Parent is drawn before children if !childrenOnly
                 if (!this.target?.childrenOnly) {
+                    loadMatrix(this.worldTransform);
                     this._drawEvents.trigger();
                 }
                 // Draw children
                 const f = _k.gfx.fixed;
-                pushTransform();
                 for (let i = 0; i < objects.length; i++) {
                     // An object with a mask is drawn at draw time, but the transform still needs to be calculated,
                     // so we push the parent's transform and pretend we are
                     _k.gfx.fixed = objects[i].fixed;
                     if (objects[i].mask) {
-                        loadMatrix(objects[i].parent!.transform);
+                        loadMatrix(objects[i].parent!.worldTransform);
                         objects[i].drawTree();
                     }
                     else {
-                        loadMatrix(objects[i].transform);
-                        objects[i]._drawEvents.trigger();
+                        loadMatrix(objects[i].worldTransform);
+                        objects[i].drawEvents.trigger();
                     }
                 }
-                popTransform();
                 _k.gfx.fixed = f;
             }
 
@@ -951,10 +997,11 @@ export const GameObjRawPrototype: Omit<GameObjRaw, AppEvents> = {
             // If children only flag is on
             if (this.target?.childrenOnly) {
                 // Parent is drawn on screen, children are drawn in target
-                loadMatrix(this.transform);
+                loadMatrix(this.worldTransform);
                 this._drawEvents.trigger();
             }
         }
+        popTransform();
     },
 
     inspect(this: GameObjRaw): GameObjInspect {
@@ -990,7 +1037,7 @@ export const GameObjRawPrototype: Omit<GameObjRaw, AppEvents> = {
             this.children[i].drawInspect();
         }
 
-        loadMatrix(this.transform);
+        loadMatrix(this.worldTransform);
         this.trigger("drawInspect");
     },
 
@@ -1001,12 +1048,6 @@ export const GameObjRawPrototype: Omit<GameObjRaw, AppEvents> = {
         objects: GameObj<any>[],
     ) {
         pushTransform();
-        if (this.pos) multTranslateV(this.pos);
-        if (this.angle) multRotate(this.angle);
-        if (this.scale) multScaleV(this.scale);
-
-        if (!this.transform) this.transform = new Mat23();
-        storeMatrix(this.transform);
 
         // Add to objects
         objects.push(this);
@@ -1049,7 +1090,7 @@ export const GameObjRawPrototype: Omit<GameObjRaw, AppEvents> = {
             gc = this._cleanups[comp.id];
             this._compStates.set(comp.id, comp);
 
-            if (addCompIdAsTag) this._tags.add(comp.id);
+            if (addCompIdAsTag) this.tagsAsSet.add(comp.id);
         }
         else {
             this._anonymousCompStates.push(comp);
@@ -1090,21 +1131,39 @@ export const GameObjRawPrototype: Omit<GameObjRaw, AppEvents> = {
                         comp[key]?.();
                         this._onCurCompCleanup = null;
                     }
-                    : comp[<keyof typeof comp> key];
-                gc.push(this.on(key, <any> func).cancel);
+                    : comp[<keyof typeof comp>key];
+                gc.push(this.on(key, <any>func).cancel);
             }
             else {
                 // @ts-ignore
                 if (this[key] === undefined) {
                     // Assign comp fields to game obj
                     Object.defineProperty(this, key, {
-                        get: () => comp[<keyof typeof comp> key],
-                        set: (val) => comp[<keyof typeof comp> key] = val,
+                        get: () => comp[<keyof typeof comp>key],
+                        set: Object.keys(TRANSFORM_AFFECTING_PROPS).includes(key) ? (val) => {
+                            if (val instanceof Vec2) {
+                                val = new Proxy(val, {
+                                    set: (target, prop, value) => {
+                                        (target as any)[prop] = value;
+                                        this._dirtyFlags |= TRANSFORM_AFFECTING_PROPS[key as keyof typeof TRANSFORM_AFFECTING_PROPS];
+                                        return true;
+                                    },
+                                });
+                            }
+                            this._dirtyFlags |= TRANSFORM_AFFECTING_PROPS[key as keyof typeof TRANSFORM_AFFECTING_PROPS];
+                            comp[<keyof typeof comp>key] = val;
+                        } : (val) => {
+                            comp[<keyof typeof comp>key] = val;
+                        },
                         configurable: true,
                         enumerable: true,
                     });
                     // @ts-ignore
                     gc.push(() => delete this[key]);
+                    // initial value state
+                    if (Object.keys(TRANSFORM_AFFECTING_PROPS).includes(key)) {
+                        this._dirtyFlags |= TRANSFORM_AFFECTING_PROPS[key as keyof typeof TRANSFORM_AFFECTING_PROPS];
+                    }
                 }
                 else {
                     const originalCompId = this._compStates.values().find(c =>
@@ -1112,9 +1171,9 @@ export const GameObjRawPrototype: Omit<GameObjRaw, AppEvents> = {
                     )?.id;
                     throw new Error(
                         `Duplicate component property: "${key}" while adding component "${comp.id}"`
-                            + (originalCompId
-                                ? ` (originally added by "${originalCompId}")`
-                                : ""),
+                        + (originalCompId
+                            ? ` (originally added by "${originalCompId}")`
+                            : ""),
                     );
                 }
             }
@@ -1185,8 +1244,8 @@ export const GameObjRawPrototype: Omit<GameObjRaw, AppEvents> = {
             this.trigger("unuse", id);
             _k.game.events.trigger("unuse", this, id);
         }
-        else if (addCompIdAsTag && this._tags.has(id)) {
-            this._tags.delete(id);
+        else if (addCompIdAsTag && this.tagsAsSet.has(id)) {
+            this.tagsAsSet.delete(id);
         }
 
         if (this._cleanups[id]) {
@@ -1223,13 +1282,13 @@ export const GameObjRawPrototype: Omit<GameObjRaw, AppEvents> = {
     tag(this: GameObjRaw, tag: Tag | Tag[]): void {
         if (Array.isArray(tag)) {
             for (const t of tag) {
-                this._tags.add(t);
+                this.tagsAsSet.add(t);
                 this.trigger("tag", t);
                 _k.game.events.trigger("tag", this as GameObj, t);
             }
         }
         else {
-            this._tags.add(tag);
+            this.tagsAsSet.add(tag);
             this.trigger("tag", tag);
             _k.game.events.trigger("tag", this as GameObj, tag);
         }
@@ -1238,13 +1297,13 @@ export const GameObjRawPrototype: Omit<GameObjRaw, AppEvents> = {
     untag(this: GameObjRaw, tag: Tag | Tag[]): void {
         if (Array.isArray(tag)) {
             for (const t of tag) {
-                this._tags.delete(t);
+                this.tagsAsSet.delete(t);
                 this.trigger("untag", t);
                 _k.game.events.trigger("untag", this, t);
             }
         }
         else {
-            this._tags.delete(tag);
+            this.tagsAsSet.delete(tag);
             this.trigger("untag", tag);
             _k.game.events.trigger("untag", this, tag);
         }
@@ -1253,14 +1312,14 @@ export const GameObjRawPrototype: Omit<GameObjRaw, AppEvents> = {
     is(this: GameObjRaw, tag: Tag | Tag[], op: "or" | "and" = "and"): boolean {
         if (Array.isArray(tag)) {
             if (op === "and") {
-                return tag.every(tag => this._tags.has(tag));
+                return tag.every(tag => this.tagsAsSet.has(tag));
             }
             else {
-                return tag.some(tag => this._tags.has(tag));
+                return tag.some(tag => this.tagsAsSet.has(tag));
             }
         }
         else {
-            return this._tags.has(tag);
+            return this.tagsAsSet.has(tag);
         }
     },
     // #endregion
@@ -1372,7 +1431,7 @@ export function attachAppToGameObjRaw() {
     for (const e of appEvs) {
         const obj = GameObjRawPrototype as Record<string, any>;
 
-        obj[e] = function(this: GameObjRaw, ...args: [any]) {
+        obj[e] = function (this: GameObjRaw, ...args: [any]) {
             // @ts-ignore
             const ev: KEventController = _k.app[e]?.(...args);
             this._inputEvents.push(ev);

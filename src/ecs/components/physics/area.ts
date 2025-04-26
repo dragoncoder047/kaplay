@@ -18,7 +18,7 @@ import type {
     Shape,
     Tag,
 } from "../../../types";
-import { AreaDirty, LocalAreaDirty, LocalAreaUpdated, WorldAreaDirty, WorldAreaUpdated } from "../../make";
+import { AreaDirty, LocalAreaDirty, LocalAreaUpdated, WorldAreaDirty, WorldAreaUpdated } from "../../entity/GameObjRaw";
 import type { FakeMouseComp } from "../misc/fakeMouse";
 import type { AnchorComp } from "../transform/anchor";
 import type { FixedComp } from "../transform/fixed";
@@ -367,21 +367,21 @@ export function area(opt: AreaCompOpt = {}): AreaComp {
             },
             set shape(value: Shape | null) {
                 _shape = value;
-                (this as unknown as GameObj).dirtyFlags |= AreaDirty;
+                (this as unknown as GameObj)._dirtyFlags |= AreaDirty;
             },
             get scale() {
                 return _scale;
             },
             set scale(value: Vec2) {
                 _scale = value;
-                (this as unknown as GameObj).dirtyFlags |= AreaDirty;
+                (this as unknown as GameObj)._dirtyFlags |= AreaDirty;
             },
             get offset() {
                 return _offset;
             },
             set offset(value: Vec2) {
                 _offset = value;
-                (this as unknown as GameObj).dirtyFlags |= AreaDirty;
+                (this as unknown as GameObj)._dirtyFlags |= AreaDirty;
             },
             cursor: opt.cursor ?? null,
         },
@@ -582,19 +582,19 @@ export function area(opt: AreaCompOpt = {}): AreaComp {
         },
 
         localArea(this: GameObj<AreaComp | { renderArea(): Shape }>): Shape {
-            if (this.dirtyFlags & LocalAreaDirty) {
+            if (this._dirtyFlags & LocalAreaDirty) {
                 localArea = this.area.shape
                     ? this.area.shape
                     : this.renderArea();
 
-                this.dirtyFlags &= ~LocalAreaDirty;
-                this.dirtyFlags |= LocalAreaUpdated;
+                this._dirtyFlags &= ~LocalAreaDirty;
+                this._dirtyFlags |= LocalAreaUpdated;
             }
             return localArea;
         },
 
         worldArea(this: GameObj<PosComp | AreaComp | AnchorComp>): Polygon {
-            if (this.dirtyFlags & WorldAreaDirty) {
+            if (this._dirtyFlags & WorldAreaDirty) {
                 const localArea = this.localArea();
 
                 const transform = this.worldTransform
@@ -612,15 +612,15 @@ export function area(opt: AreaCompOpt = {}): AreaComp {
 
                 worldArea = localArea.transform(transform) as Polygon;
 
-                this.dirtyFlags &= ~WorldAreaDirty;
-                this.dirtyFlags |= WorldAreaUpdated;
+                this._dirtyFlags &= ~WorldAreaDirty;
+                this._dirtyFlags |= WorldAreaUpdated;
             }
 
             return worldArea;
         },
 
         aabb(this: GameObj<AreaComp>): Rect {
-            if (aabb === undefined || this.dirtyFlags & WorldAreaDirty) {
+            if (aabb === undefined || this._dirtyFlags & WorldAreaDirty) {
                 aabb = this.worldArea().bbox();
             }
             return aabb;

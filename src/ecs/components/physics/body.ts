@@ -4,7 +4,6 @@ import { getGravityDirection } from "../../../game/gravity";
 import { _k } from "../../../kaplay";
 import { lerp, type Vec2, vec2 } from "../../../math/math";
 import type { Collision, Comp, GameObj } from "../../../types";
-import { AllDirty } from "../../make";
 import type { PosComp } from "../transform/pos";
 import type { AreaComp } from "./area";
 
@@ -347,7 +346,6 @@ export function body(opt: BodyCompOpt = {}): BodyComp {
                         nextPhysicsPos!.x,
                         dt / _k.k.fixedDt(),
                     );
-                    this.dirtyFlags = AllDirty;
                     // Copy to check for changes
                     prevDrawPos.x = this.pos.x;
                 }
@@ -358,7 +356,6 @@ export function body(opt: BodyCompOpt = {}): BodyComp {
                         nextPhysicsPos!.y,
                         dt / _k.k.fixedDt(),
                     );
-                    this.dirtyFlags = AllDirty;
                     // Copy to check for changes
                     prevDrawPos.y = this.pos.y;
                 }
@@ -370,11 +367,9 @@ export function body(opt: BodyCompOpt = {}): BodyComp {
             if (prevPhysicsPos) {
                 if (this.pos.x == prevDrawPos.x) {
                     this.pos.x = prevPhysicsPos.x;
-                    this.dirtyFlags = AllDirty;
                 }
                 if (this.pos.y == prevDrawPos.y) {
                     this.pos.y = prevPhysicsPos.y;
-                    this.dirtyFlags = AllDirty;
                 }
                 prevPhysicsPos = null;
             }

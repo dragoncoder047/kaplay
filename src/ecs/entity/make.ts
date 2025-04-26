@@ -37,7 +37,7 @@ export function make<T extends CompList<unknown>>(
     obj._compStates = new Map();
     obj._compsIds = new Set();
     obj._anonymousCompStates = [];
-    obj._tags = new Set("*");
+    obj.tagsAsSet = new Set("*");
     obj._events = new KEventHandler();
     obj._updateEvents = new KEvent<[]>();
     obj._fixedUpdateEvents = new KEvent<[]>();

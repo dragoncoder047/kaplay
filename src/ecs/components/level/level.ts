@@ -13,7 +13,7 @@ import {
     type GameObj,
 } from "../../../types";
 import { BinaryHeap } from "../../../utils/binaryheap";
-import { AllDirty } from "../../make";
+import { AllDirty } from "../../entity/GameObjRaw";
 import { pos, type PosComp } from "../transform/pos";
 import { tile } from "./tile";
 
@@ -407,7 +407,7 @@ export function level(map: string[], opt: LevelOpt): LevelComp {
             }
 
             obj.tilePos = p;
-            obj.dirtyFlags = AllDirty;
+            obj._dirtyFlags = AllDirty;
 
             if (spatialMap) {
                 insertIntoSpatialMap(obj);
