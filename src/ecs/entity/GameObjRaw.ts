@@ -588,8 +588,8 @@ export const GameObjRawPrototype: Omit<GameObjRaw, AppEvents> = {
         const oldTransform = this._parent?.transform;
         const newTransform = p.transform;
         if ((opt.keep & KeepFlags.Pos) && this.pos !== undefined) {
-            oldTransform.transformPoint(this.pos, this.pos);
-            newTransform.inverse.transformPoint(this.pos, this.pos);
+            oldTransform.transformPointV(this.pos, this.pos);
+            newTransform.inverse.transformPointV(this.pos, this.pos);
         }
         if ((opt.keep & KeepFlags.Angle) && this.angle !== undefined) {
             this.angle += newTransform.getRotation()
@@ -930,7 +930,7 @@ export const GameObjRawPrototype: Omit<GameObjRaw, AppEvents> = {
                 for (let i = 0; i < objects.length; i++) {
                     _k.gfx.fixed = objects[i].fixed;
                     loadMatrix(objects[i].worldTransform);
-                    objects[i].drawEvents.trigger();
+                    objects[i]._drawEvents.trigger();
                 }
                 _k.gfx.fixed = f;
             }, () => {
@@ -970,7 +970,7 @@ export const GameObjRawPrototype: Omit<GameObjRaw, AppEvents> = {
                     }
                     else {
                         loadMatrix(objects[i].worldTransform);
-                        objects[i].drawEvents.trigger();
+                        objects[i]._drawEvents.trigger();
                     }
                 }
                 _k.gfx.fixed = f;

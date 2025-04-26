@@ -43,6 +43,8 @@ export function make<T extends CompList<unknown>>(
     obj._fixedUpdateEvents = new KEvent<[]>();
     obj._drawEvents = new KEvent<[]>();
     obj._inputEvents = [];
+    obj._worldTransform = new Mat23();
+    obj._localTransform = new Mat23();
     obj.paused = false;
     obj.hidden = false;
     obj.id = id;

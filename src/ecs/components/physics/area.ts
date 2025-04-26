@@ -254,9 +254,9 @@ export function area(opt: AreaCompOpt = {}): AreaComp {
     const colliding: Record<string, Collision> = {};
     const collidingThisFrame = new Set();
     const events: KEventController[] = [];
-
     let localArea: Shape;
-    let worldArea: Polygon;
+    let worldArea: Shape;
+    let screenArea: Shape;
     let aabb: Rect;
 
     let _shape: Shape | null = opt.shape ?? null;
@@ -593,30 +593,35 @@ export function area(opt: AreaCompOpt = {}): AreaComp {
             return localArea;
         },
 
-        worldArea(this: GameObj<PosComp | AreaComp | AnchorComp>): Polygon {
+        worldArea(this: GameObj<AreaComp | AnchorComp>): Shape {
             if (this._dirtyFlags & WorldAreaDirty) {
                 const localArea = this.localArea();
 
-                const transform = this.worldTransform
-                    .clone()
-                    .translateSelfV(this.area.offset)
-                    .scaleSelfV(vec2(this.area.scale ?? 1));
-
-                if (localArea instanceof Rect) {
+                // World transform
+                const transform = this.worldTransform.clone();
+                // Optional area offset
+                if (this.area.offset.x !== 0 || this.area.offset.y !== 0) {
+                    transform.translateSelfV(this.area.offset);
+                }
+                // Optional area scale
+                if (this.area.scale.x !== 1 || this.area.scale.y !== 1) {
+                    transform.scaleSelfV(this.area.scale);
+                }
+                // Optional anchor offset (Rect only??)
+                if (localArea instanceof Rect && this.anchor !== "topleft") {
                     const offset = anchorPt(this.anchor || DEF_ANCHOR)
                         .add(1, 1)
-                        .scale(-0.5)
-                        .scale(localArea.width, localArea.height);
+                        .scale(-0.5 * localArea.width, -0.5 * localArea.height);
                     transform.translateSelfV(offset);
                 }
 
-                worldArea = localArea.transform(transform) as Polygon;
+                worldArea = localArea.transform(transform, worldArea);
 
                 this._dirtyFlags &= ~WorldAreaDirty;
                 this._dirtyFlags |= WorldAreaUpdated;
             }
 
-            return worldArea;
+            return worldArea!;
         },
 
         aabb(this: GameObj<AreaComp>): Rect {
@@ -632,7 +637,10 @@ export function area(opt: AreaCompOpt = {}): AreaComp {
                 return area;
             }
             else {
-                return area.transform(_k.game.cam.transform);
+                return screenArea = area.transform(
+                    _k.game.cam.transform,
+                    worldArea,
+                );
             }
         },
 
@@ -641,9 +649,8 @@ export function area(opt: AreaCompOpt = {}): AreaComp {
                 return `area: ${this.area.scale?.x?.toFixed(1)}x`;
             }
             else {
-                return `area: (${this.area.scale?.x?.toFixed(1)}x, ${
-                    this.area.scale.y?.toFixed(1)
-                }y)`;
+                return `area: (${this.area.scale?.x?.toFixed(1)}x, ${this.area.scale.y?.toFixed(1)
+                    }y)`;
             }
         },
     };
