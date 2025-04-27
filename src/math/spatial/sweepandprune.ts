@@ -1,6 +1,5 @@
 import type { AreaComp } from "../../ecs/components/physics/area";
 import type { GameObj } from "../../types";
-import { calcTransform } from "../various";
 
 /**
  * Left or right edge of an object's bbox
@@ -65,7 +64,6 @@ export class SweepAndPrune {
     update() {
         // Update edge data
         for (const [obj, edges] of this.objects.entries()) {
-            calcTransform(obj, obj.transform);
             const bbox = obj.worldArea().bbox();
             edges[0].x = bbox.pos.x;
             edges[1].x = bbox.pos.x + bbox.width;

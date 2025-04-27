@@ -102,6 +102,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **BREAKING**: Changed default behavior to
   `kaplay({ tagsAsComponents: false })`.
 - The physics engine creates less garbage - @mflerackers
+- **BREAKING**: the `transform` property of game objects has been split to `worldTransform` and `localTransform` - @mflerackers
 - Tag-based events are slightly faster - @dragoncoder047
 - Moved camera to the shader - @mflerackers
 - Replaced the Separating Axis Theorem (SAT) collision detection module with the

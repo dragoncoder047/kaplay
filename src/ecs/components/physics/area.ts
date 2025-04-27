@@ -22,6 +22,7 @@ import type { FakeMouseComp } from "../misc/fakeMouse";
 import type { AnchorComp } from "../transform/anchor";
 import type { FixedComp } from "../transform/fixed";
 import type { PosComp } from "../transform/pos";
+import { DirtyFlags } from "../../entity/GameObjRaw";
 
 let areaCount = 0;
 
@@ -251,6 +252,9 @@ export function area(opt: AreaCompOpt = {}): AreaComp {
     const events: KEventController[] = [];
     let oldShape: Shape | undefined;
 
+    let _localArea: Shape | undefined;
+    let _worldArea: Shape | undefined;
+
     if (!fakeMouse && !fakeMouseChecked) {
         fakeMouse = _k.k.get<FakeMouseComp | PosComp>("fakeMouse")[0];
         fakeMouseChecked = true;
@@ -288,6 +292,16 @@ export function area(opt: AreaCompOpt = {}): AreaComp {
                     collidingThisFrame.add(obj.id);
                 }),
             );
+
+            this.area = new Proxy(this.area, {
+                set(target, prop, value) {
+                    target[prop as keyof typeof target] = value;
+                    if (["shape", "scale", "offset"].includes(prop as string)) {
+                        (this as any)._dirtyFlags |= DirtyFlags.Area;
+                    }
+                    return true;
+                }
+            });
         },
 
         destroy() {
@@ -552,32 +566,41 @@ export function area(opt: AreaCompOpt = {}): AreaComp {
         },
 
         localArea(this: GameObj<AreaComp | { renderArea(): Shape }>): Shape {
-            return this.area.shape ? this.area.shape : this.renderArea();
+            if (this._dirtyFlags & DirtyFlags.LocalArea) {
+                _localArea = this.area.shape ? this.area.shape : this.renderArea();
+                this._dirtyFlags &= ~DirtyFlags.LocalArea;
+            }
+
+            return _localArea!;
         },
 
-        // TODO: cache
         worldArea(this: GameObj<AreaComp | AnchorComp>): Shape {
-            const localArea = this.localArea();
+            if (this._dirtyFlags & DirtyFlags.WorldArea) {
+                const localArea = this.localArea();
 
-            // World transform
-            const transform = this.transform.clone();
-            // Optional area offset
-            if (this.area.offset.x !== 0 || this.area.offset.y !== 0) {
-                transform.translateSelfV(this.area.offset);
-            }
-            // Optional area scale
-            if (this.area.scale.x !== 1 || this.area.scale.y !== 1) {
-                transform.scaleSelfV(this.area.scale);
-            }
-            // Optional anchor offset (Rect only??)
-            if (localArea instanceof Rect && this.anchor !== "topleft") {
-                const offset = anchorPt(this.anchor || DEF_ANCHOR)
-                    .add(1, 1)
-                    .scale(-0.5 * localArea.width, -0.5 * localArea.height);
-                transform.translateSelfV(offset);
+                // World transform
+                const transform = this.worldTransform.clone();
+                // Optional area offset
+                if (this.area.offset.x !== 0 || this.area.offset.y !== 0) {
+                    transform.translateSelfV(this.area.offset);
+                }
+                // Optional area scale
+                if (this.area.scale.x !== 1 || this.area.scale.y !== 1) {
+                    transform.scaleSelfV(this.area.scale);
+                }
+                // Optional anchor offset (Rect only??)
+                if (localArea instanceof Rect && this.anchor !== "topleft") {
+                    const offset = anchorPt(this.anchor || DEF_ANCHOR)
+                        .add(1, 1)
+                        .scale(-0.5 * localArea.width, -0.5 * localArea.height);
+                    transform.translateSelfV(offset);
+                }
+
+                _worldArea = localArea.transform(transform, oldShape);
+                this._dirtyFlags &= ~DirtyFlags.WorldArea;
             }
 
-            return oldShape = localArea.transform(transform, oldShape);
+            return _worldArea!;
         },
 
         screenArea(this: GameObj<AreaComp | FixedComp>): Shape {
@@ -598,11 +621,10 @@ export function area(opt: AreaCompOpt = {}): AreaComp {
                 return `area: ${this.area.scale?.x?.toFixed(1)}x`;
             }
             else {
-                return `area: (${
-                    this.area.scale?.x?.toFixed(
-                        1,
-                    )
-                }x, ${this.area.scale.y?.toFixed(1)}y)`;
+                return `area: (${this.area.scale?.x?.toFixed(
+                    1,
+                )
+                    }x, ${this.area.scale.y?.toFixed(1)}y)`;
             }
         },
     };

@@ -14,16 +14,13 @@ import { beginPicture, endPicture, Picture } from "../../gfx/draw/drawPicture";
 import {
     flush,
     loadMatrix,
-    multRotate,
-    multScaleV,
-    multTranslateV,
     popTransform,
-    pushTransform,
-    storeMatrix,
+    pushMatrix,
+    pushTransform
 } from "../../gfx/stack";
 import { _k } from "../../kaplay";
-import { Mat23 } from "../../math/math";
-import { calcTransform } from "../../math/various";
+import { Mat23, Vec2 } from "../../math/math";
+import { calculateLocalTransform, calculateWorldTransform } from "../../math/various";
 import type {
     Comp,
     CompList,
@@ -51,6 +48,22 @@ export enum KeepFlags {
     Scale = 4,
     All = 7,
 }
+
+export enum DirtyFlags {
+    LocalTransform = 1,
+    WorldTransform = 2,
+    LocalArea = 4,
+    WorldArea = 8,
+    Area = 12,
+    All = 15,
+}
+
+const SIMPLE_PROPS_AFFECTING_TRANSFORM: Record<string, DirtyFlags> = {
+    "angle": DirtyFlags.All,
+    "width": DirtyFlags.Area,
+    "height": DirtyFlags.Area,
+    "anchor": DirtyFlags.Area,
+};
 
 export type SetParentOpt = {
     keep: KeepFlags;
@@ -88,11 +101,17 @@ export interface GameObjRaw {
      */
     tags: string[];
     /**
-     * Calculated transform matrix of a game object.
+     * Calculated transform matrix of a game object, relative to the parent.
      *
      * @since v3000.0
      */
-    transform: Mat23;
+    readonly localTransform: Mat23;
+    /**
+     * Calculated transform matrix of a game object, relative to the root.
+     *
+     * @since v3000.0
+     */
+    readonly worldTransform: Mat23;
     /**
      * If draw the game obj (run "draw" event or not).
      *
@@ -458,6 +477,10 @@ export interface GameObjRaw {
     _inputEvents: KEventController[];
     _onCurCompCleanup: Function | null;
     _tags: Set<Tag>;
+    _localTransform: Mat23;
+    _worldTransform: Mat23;
+    _parentTransform: Mat23;
+    _dirtyFlags: number;
 }
 
 type GameObjTransform = GameObj<PosComp | RotateComp | ScaleComp>;
@@ -486,8 +509,11 @@ export const GameObjRawPrototype: Omit<GameObjRaw, AppEvents> = {
     hidden: null as any,
     id: null as any,
     paused: null as any,
-    transform: null as any,
     target: null as any,
+    _localTransform: null as any,
+    _worldTransform: null as any,
+    _parentTransform: null as any,
+    _dirtyFlags: null as any,
 
     // #region Setters and Getters
     set parent(p: GameObj) {
@@ -515,7 +541,26 @@ export const GameObjRawPrototype: Omit<GameObjRaw, AppEvents> = {
         return Array.from(this._tags);
     },
 
-    // #enedregion
+    get localTransform(): Mat23 {
+        if (this._dirtyFlags & DirtyFlags.LocalTransform) {
+            this._localTransform = calculateLocalTransform(this as GameObjRaw, this._localTransform);
+            this._dirtyFlags &= ~DirtyFlags.LocalTransform;
+            this._dirtyFlags |= DirtyFlags.WorldTransform | DirtyFlags.Area;
+        }
+        return this._localTransform;
+    },
+
+    get worldTransform(): Mat23 {
+        if (this._dirtyFlags & DirtyFlags.WorldTransform || this._parentTransform !== this.parent?.worldTransform) {
+            this._worldTransform = calculateWorldTransform(this as GameObjRaw, this._worldTransform);
+            this._parentTransform = this.parent?.worldTransform!;
+            this._dirtyFlags &= ~DirtyFlags.WorldTransform;
+            this._dirtyFlags |= DirtyFlags.Area;
+        }
+        return this._worldTransform;
+    },
+
+    // #endregion
 
     // #region Object
     setParent(
@@ -524,8 +569,8 @@ export const GameObjRawPrototype: Omit<GameObjRaw, AppEvents> = {
         opt: SetParentOpt,
     ) {
         if (this._parent === p) return;
-        const oldTransform = this._parent?.transform;
-        const newTransform = p.transform;
+        const oldTransform = this._parent?.worldTransform;
+        const newTransform = p.worldTransform;
         if ((opt.keep & KeepFlags.Pos) && this.pos !== undefined) {
             oldTransform.transformPointV(this.pos, this.pos);
             newTransform.inverse.transformPointV(this.pos, this.pos);
@@ -555,8 +600,6 @@ export const GameObjRawPrototype: Omit<GameObjRaw, AppEvents> = {
         }
 
         obj.parent = this;
-
-        calcTransform(obj, obj.transform);
 
         try {
             obj.trigger("add", obj);
@@ -842,14 +885,7 @@ export const GameObjRawPrototype: Omit<GameObjRaw, AppEvents> = {
             GameObj<LayerComp | ZComp | FixedComp | MaskComp>
         >();
 
-        pushTransform();
-        if (this.pos) multTranslateV(this.pos);
-        if (this.angle) multRotate(this.angle);
-        if (this.scale) multScaleV(this.scale);
-
-        if (!this.transform) this.transform = new Mat23();
-        storeMatrix(this.transform);
-
+        pushMatrix(this.worldTransform);
         // For each child call collect
         for (let i = 0; i < this.children.length; i++) {
             if (this.children[i].hidden) continue;
@@ -881,7 +917,7 @@ export const GameObjRawPrototype: Omit<GameObjRaw, AppEvents> = {
                 pushTransform();
                 for (let i = 0; i < objects.length; i++) {
                     _k.gfx.fixed = objects[i].fixed;
-                    loadMatrix(objects[i].parent!.transform);
+                    loadMatrix(objects[i]._parent!.worldTransform);
                     objects[i]._drawEvents.trigger();
                 }
                 popTransform();
@@ -918,11 +954,11 @@ export const GameObjRawPrototype: Omit<GameObjRaw, AppEvents> = {
                     // so we push the parent's transform and pretend we are
                     _k.gfx.fixed = objects[i].fixed;
                     if (objects[i].mask) {
-                        loadMatrix(objects[i].parent!.transform);
+                        loadMatrix(objects[i].parent!.worldTransform);
                         objects[i].drawTree();
                     }
                     else {
-                        loadMatrix(objects[i].transform);
+                        loadMatrix(objects[i].worldTransform);
                         objects[i]._drawEvents.trigger();
                     }
                 }
@@ -951,7 +987,7 @@ export const GameObjRawPrototype: Omit<GameObjRaw, AppEvents> = {
             // If children only flag is on
             if (this.target?.childrenOnly) {
                 // Parent is drawn on screen, children are drawn in target
-                loadMatrix(this.transform);
+                loadMatrix(this.worldTransform);
                 this._drawEvents.trigger();
             }
         }
@@ -990,7 +1026,7 @@ export const GameObjRawPrototype: Omit<GameObjRaw, AppEvents> = {
             this.children[i].drawInspect();
         }
 
-        loadMatrix(this.transform);
+        loadMatrix(this.worldTransform);
         this.trigger("drawInspect");
     },
 
@@ -1000,13 +1036,7 @@ export const GameObjRawPrototype: Omit<GameObjRaw, AppEvents> = {
         >,
         objects: GameObj<any>[],
     ) {
-        pushTransform();
-        if (this.pos) multTranslateV(this.pos);
-        if (this.angle) multRotate(this.angle);
-        if (this.scale) multScaleV(this.scale);
-
-        if (!this.transform) this.transform = new Mat23();
-        storeMatrix(this.transform);
+        pushMatrix(this.worldTransform);
 
         // Add to objects
         objects.push(this);
@@ -1090,21 +1120,28 @@ export const GameObjRawPrototype: Omit<GameObjRaw, AppEvents> = {
                         comp[key]?.();
                         this._onCurCompCleanup = null;
                     }
-                    : comp[<keyof typeof comp> key];
-                gc.push(this.on(key, <any> func).cancel);
+                    : comp[<keyof typeof comp>key];
+                gc.push(this.on(key, <any>func).cancel);
             }
             else {
                 // @ts-ignore
                 if (this[key] === undefined) {
                     // Assign comp fields to game obj
+                    const affectsTransform = Object.keys(SIMPLE_PROPS_AFFECTING_TRANSFORM).includes(key);
                     Object.defineProperty(this, key, {
-                        get: () => comp[<keyof typeof comp> key],
-                        set: (val) => comp[<keyof typeof comp> key] = val,
+                        get: () => comp[<keyof typeof comp>key],
+                        set: affectsTransform ? (val) => {
+                            this._dirtyFlags |= SIMPLE_PROPS_AFFECTING_TRANSFORM[key];
+                            comp[<keyof typeof comp>key] = val;
+                        } : (val) => comp[<keyof typeof comp>key] = val,
                         configurable: true,
                         enumerable: true,
                     });
                     // @ts-ignore
                     gc.push(() => delete this[key]);
+                    if (affectsTransform) {
+                        this._dirtyFlags |= SIMPLE_PROPS_AFFECTING_TRANSFORM[key];
+                    }
                 }
                 else {
                     const originalCompId = this._compStates.values().find(c =>
@@ -1112,9 +1149,9 @@ export const GameObjRawPrototype: Omit<GameObjRaw, AppEvents> = {
                     )?.id;
                     throw new Error(
                         `Duplicate component property: "${key}" while adding component "${comp.id}"`
-                            + (originalCompId
-                                ? ` (originally added by "${originalCompId}")`
-                                : ""),
+                        + (originalCompId
+                            ? ` (originally added by "${originalCompId}")`
+                            : ""),
                     );
                 }
             }
@@ -1372,7 +1409,7 @@ export function attachAppToGameObjRaw() {
     for (const e of appEvs) {
         const obj = GameObjRawPrototype as Record<string, any>;
 
-        obj[e] = function(this: GameObjRaw, ...args: [any]) {
+        obj[e] = function (this: GameObjRaw, ...args: [any]) {
             // @ts-ignore
             const ev: KEventController = _k.app[e]?.(...args);
             this._inputEvents.push(ev);

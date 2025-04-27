@@ -5,6 +5,8 @@ import { _k } from "../../../kaplay";
 import { rgb } from "../../../math/color";
 import { type Vec2, vec2, type Vec2Args } from "../../../math/math";
 import type { Comp, GameObj } from "../../../types";
+import { proxify } from "../../../utils/proxify";
+import { DirtyFlags } from "../../entity/GameObjRaw";
 import type { FixedComp } from "./fixed";
 
 /**
@@ -81,9 +83,20 @@ export interface PosComp extends Comp {
 }
 
 export function pos(...args: Vec2Args): PosComp {
-    return {
+    let _pos: Vec2;
+    const comp: PosComp = {
         id: "pos",
-        pos: vec2(...args),
+        add(this: GameObj) {
+            this.pos = vec2(...args);
+        },
+        get pos() {
+            return _pos;
+        },
+        set pos(v: Vec2) {
+            const onchange = () => (this as any)._dirtyFlags |= DirtyFlags.All;
+            _pos = proxify(v, onchange);
+            onchange();
+        },
 
         moveBy(...args: Vec2Args) {
             this.pos = this.pos.add(vec2(...args));
@@ -95,7 +108,7 @@ export function pos(...args: Vec2Args): PosComp {
         },
 
         // move to a destination, with optional speed
-        // Adress all ts ignores
+        // Address all ts ignores
         moveTo(...args) {
             if (
                 typeof args[0] === "number" && typeof args[1] === "number"
@@ -213,4 +226,5 @@ export function pos(...args: Vec2Args): PosComp {
             });
         },
     };
+    return comp;
 }

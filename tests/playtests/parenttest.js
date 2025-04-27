@@ -35,7 +35,7 @@ const orbitingBean = centerBean.add([
     color(),
     {
         update() {
-            this.angle = -this.parent.transform.getRotation();
+            this.angle = -this.parent.worldTransform.getRotation();
             if (this.isHovering()) {
                 this.color = RED;
             }

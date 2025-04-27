@@ -28,7 +28,7 @@ add([
 // This object will catch user input
 const crew = add([
     text(""),
-    // We pass true so it focus by default. You can also do crew.hasFocus = true;
+    // We pass true so it focus by default. You can also do crew.hasFocus = true or crew.focus()
     textInput(true, 20), // <- 20 chars at max
     pos(width() / 2, height() / 2),
     anchor("center"),

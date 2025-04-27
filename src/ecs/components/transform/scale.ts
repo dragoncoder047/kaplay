@@ -1,5 +1,7 @@
 import { Vec2, vec2, type Vec2Args } from "../../../math/math";
 import type { Comp } from "../../../types";
+import { proxify } from "../../../utils/proxify";
+import { DirtyFlags } from "../../entity/GameObjRaw";
 
 /**
  * The {@link scale `scale()`} component.
@@ -44,35 +46,40 @@ export function scale(...args: Vec2Args): ScaleComp {
         return scale(1);
     }
 
-    let _scale = vec2(...args);
+    let _scale: Vec2;
 
     return {
         id: "scale",
+        add() {
+            this.scale = vec2(...args);
+        },
         set scale(value: Vec2) {
-            if (value instanceof Vec2 === false) {
+            if (!(value instanceof Vec2)) {
                 throw Error(
                     "The scale property on scale is a vector. Use scaleTo or scaleBy to set the scale with a number.",
                 );
             }
-
-            _scale = vec2(value);
+            const onchange = () => (this as any)._dirtyFlags |= DirtyFlags.All;
+            _scale = proxify(vec2(value), onchange);
+            onchange();
         },
         get scale() {
             return _scale;
         },
         scaleTo(...args: Vec2Args) {
-            _scale = vec2(...args);
+            this.scale = vec2(...args);
         },
         scaleBy(...args: Vec2Args) {
-            _scale = _scale.scale(vec2(...args));
+            this.scale = this.scale.scale(vec2(...args));
         },
         inspect() {
             if (_scale.x == _scale.y) {
                 return `scale: ${_scale.x.toFixed(1)}x`;
             }
-            else {return `scale: (${_scale.x.toFixed(1)}x, ${
-                    _scale.y.toFixed(1)
-                }y)`;}
+            else {
+                return `scale: (${_scale.x.toFixed(1)}x, ${_scale.y.toFixed(1)
+                    }y)`;
+            }
         },
     };
 }

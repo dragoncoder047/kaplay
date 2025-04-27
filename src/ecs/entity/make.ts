@@ -7,6 +7,7 @@ import type { Comp, CompList, GameObj } from "../../types";
 import { uid } from "../../utils/uid";
 import {
     attachAppToGameObjRaw,
+    DirtyFlags,
     type GameObjRaw,
     GameObjRawPrototype,
 } from "./GameObjRaw";
@@ -47,6 +48,9 @@ export function make<T extends CompList<unknown>>(
     obj.hidden = false;
     obj.id = id;
     obj.transform = new Mat23();
+    obj._localTransform = new Mat23();
+    obj._worldTransform = new Mat23();
+    obj._dirtyFlags = DirtyFlags.All;
 
     // We only need to modify the prototype the first time, when we know App
     // state is available (at the moment of create the root game object)
