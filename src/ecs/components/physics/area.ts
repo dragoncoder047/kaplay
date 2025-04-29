@@ -1,4 +1,4 @@
-import { DEF_ANCHOR } from "../../../constants";
+import { DEF_ANCHOR } from "../../../constants/general";
 import type { KEventController } from "../../../events/events";
 import { isFixed } from "../../../game/utils";
 import { anchorPt } from "../../../gfx/anchor";
@@ -8,7 +8,8 @@ import { drawRect } from "../../../gfx/draw/drawRect";
 import { multTranslate, popTransform, pushTransform } from "../../../gfx/stack";
 import { _k } from "../../../kaplay";
 import { rgb } from "../../../math/color";
-import { Circle, Polygon, Rect, type Vec2, vec2 } from "../../../math/math";
+import { Circle, Polygon, Rect, vec2 } from "../../../math/math";
+import { type Vec2 } from "../../../math/Vec2";
 import type {
     Collision,
     Comp,
@@ -24,10 +25,8 @@ import type { AnchorComp } from "../transform/anchor";
 import type { FixedComp } from "../transform/fixed";
 import type { PosComp } from "../transform/pos";
 
-let areaCount = 0;
-
 export function usesArea() {
-    return areaCount > 0;
+    return _k.game.areaCount > 0;
 }
 
 /**
@@ -247,9 +246,6 @@ export interface AreaCompOpt {
     friction?: number;
 }
 
-let fakeMouse: GameObj<FakeMouseComp | PosComp> | null = null;
-let fakeMouseChecked = false;
-
 export function area(opt: AreaCompOpt = {}): AreaComp {
     const colliding: Record<string, Collision> = {};
     const collidingThisFrame = new Set();
@@ -263,11 +259,6 @@ export function area(opt: AreaCompOpt = {}): AreaComp {
     let _scale: Vec2 = opt.scale ? vec2(opt.scale) : vec2(1);
     let _offset: Vec2 = opt.offset ?? vec2(0);
 
-    if (!fakeMouse && !fakeMouseChecked) {
-        fakeMouse = _k.k.get<FakeMouseComp | PosComp>("fakeMouse")[0];
-        fakeMouseChecked = true;
-    }
-
     return {
         id: "area",
         collisionIgnore: new Set(opt.collisionIgnore ?? []),
@@ -275,7 +266,7 @@ export function area(opt: AreaCompOpt = {}): AreaComp {
         friction: opt.friction,
 
         add(this: GameObj<AreaComp>) {
-            areaCount++;
+            _k.game.areaCount++;
             if (this.area.cursor) {
                 events.push(
                     this.onHover(() => _k.app.setCursor(this.area.cursor!)),
@@ -303,7 +294,7 @@ export function area(opt: AreaCompOpt = {}): AreaComp {
         },
 
         destroy() {
-            areaCount--;
+            _k.game.areaCount--;
             for (const event of events) {
                 event.cancel();
             }
@@ -387,18 +378,18 @@ export function area(opt: AreaCompOpt = {}): AreaComp {
         },
 
         isClicked(): boolean {
-            if (fakeMouse) {
-                return fakeMouse.isPressed && this.isHovering();
+            if (_k.game.fakeMouse) {
+                return _k.game.fakeMouse.isPressed && this.isHovering();
             }
 
             return _k.app.isMousePressed() && this.isHovering();
         },
 
         isHovering(this: GameObj<AreaComp>) {
-            if (fakeMouse) {
+            if (_k.game.fakeMouse) {
                 const mpos = isFixed(this)
-                    ? fakeMouse.pos
-                    : _k.k.toWorld(fakeMouse.pos);
+                    ? _k.game.fakeMouse.pos
+                    : _k.k.toWorld(_k.game.fakeMouse.pos);
 
                 return this.hasPoint(mpos);
             }
@@ -447,8 +438,8 @@ export function area(opt: AreaCompOpt = {}): AreaComp {
             action: () => void,
             btn: MouseButton = "left",
         ): KEventController {
-            if (fakeMouse) {
-                fakeMouse.onPress(() => {
+            if (_k.game.fakeMouse) {
+                _k.game.fakeMouse.onPress(() => {
                     if (this.isHovering()) {
                         action();
                     }

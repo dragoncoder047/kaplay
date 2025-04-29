@@ -1,5 +1,6 @@
 import type { GameObj } from "../types";
-import { deg2rad, Mat23, Vec2, vec2 } from "./math";
+import { deg2rad, Mat23, vec2 } from "./math";
+import { Vec2 } from "./Vec2";
 
 export function calcLocalTransform(obj: GameObj, tr: Mat23): Mat23 {
     tr.setIdentity();
