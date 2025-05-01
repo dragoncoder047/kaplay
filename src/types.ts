@@ -6181,6 +6181,11 @@ export interface KAPLAYOpt<
      * @experimental
      */
     inspectOnlyActive?: boolean;
+    /**
+     * Which strategy to use for narrow phase collision, gjk or sat
+     * @default "gjk"
+     */
+    narrowPhaseCollisionAlgorithm?: string;
 }
 
 /**
@@ -6920,6 +6925,10 @@ export type EaseFunc = (t: number) => number;
  */
 export type TimerController = {
     /**
+     * The time left for the callback to be called.
+     */
+    timeLeft: number;
+    /**
      * If the event handler is paused.
      */
     paused: boolean;
@@ -6940,6 +6949,10 @@ export type TimerController = {
  * @group Timer
  */
 export type TweenController = TimerController & {
+    /**
+     * The current time in the duration of the tween
+     */
+    currentTime: number;
     /**
      * Finish the tween now and cancel.
      */

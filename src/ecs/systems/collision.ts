@@ -3,12 +3,22 @@ import { onSceneLeave } from "../../game/scenes";
 import { _k } from "../../kaplay";
 import { gjkShapeIntersection } from "../../math/gjk";
 import { vec2 } from "../../math/math";
+import { minkowskiRectShapeIntersection } from "../../math/minkowski";
+import { satShapeIntersection } from "../../math/sat";
 import { SweepAndPrune } from "../../math/spatial/sweepandprune";
 import { type Vec2 } from "../../math/Vec2";
 import type { GameObj } from "../../types";
 import { type AreaComp, usesArea } from "../components/physics/area";
 
-export const getCollisionSystem = () => {
+export const getCollisionSystem = ({ narrow = "gjk" } = {}) => {
+    const narrowPhaseIntersection = narrow === "gjk"
+        ? gjkShapeIntersection
+        : narrow === "sat"
+        ? satShapeIntersection
+        : narrow === "box"
+        ? minkowskiRectShapeIntersection
+        : gjkShapeIntersection;
+
     class Collision {
         source: GameObj;
         target: GameObj;
