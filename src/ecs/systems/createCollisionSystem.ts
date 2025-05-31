@@ -1,16 +1,20 @@
+import { DEF_HASH_GRID_SIZE } from "../../constants/general";
 import { onAdd, onDestroy, onUnuse, onUse } from "../../events/globalEvents";
 import { onSceneLeave } from "../../game/scenes";
 import { gjkShapeIntersection } from "../../math/gjk";
 import { vec2 } from "../../math/math";
 import { minkowskiRectShapeIntersection } from "../../math/minkowski";
 import { satShapeIntersection } from "../../math/sat";
+import { HashGrid } from "../../math/spatial/hashgrid";
 import { SweepAndPrune } from "../../math/spatial/sweepandprune";
 import { type Vec2 } from "../../math/Vec2";
 import { _k } from "../../shared";
 import type { GameObj } from "../../types";
 import { type AreaComp, usesArea } from "../components/physics/area";
 
-export const createCollisionSystem = ({ narrow = "gjk" } = {}) => {
+export const createCollisionSystem = (
+    { narrow = "gjk", hgSize = DEF_HASH_GRID_SIZE } = {},
+) => {
     const narrowPhaseIntersection = narrow === "gjk"
         ? gjkShapeIntersection
         : narrow === "sat"
@@ -103,7 +107,7 @@ export const createCollisionSystem = ({ narrow = "gjk" } = {}) => {
         return true;
     }
 
-    const sap = new SweepAndPrune();
+    const sap = new HashGrid({ hashGridSize: hgSize });
     let sapInit = false;
 
     function broadPhase() {
