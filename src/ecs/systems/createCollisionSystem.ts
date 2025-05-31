@@ -74,8 +74,8 @@ export const createCollisionSystem = ({ narrow = "gjk" } = {}) => {
         obj: GameObj<AreaComp>,
         other: GameObj<AreaComp>,
     ): boolean {
-        if (other.paused) return false;
-        if (!other.exists()) return false;
+        if (other.paused || obj.paused) return false;
+        if (!other.exists() || !obj.exists()) return false;
         for (const tag of obj.collisionIgnore) {
             if (other.is(tag)) {
                 return false;
