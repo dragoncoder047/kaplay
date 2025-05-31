@@ -3,7 +3,7 @@ import type { AreaComp } from "../../ecs/components/physics/area";
 import type { GameObj } from "../../types";
 import { calcTransform } from "../various";
 
-export class HashGrid {
+class HashGrid {
     grid: Record<number, Record<number, GameObj<AreaComp>[]>> = {};
     cellSize: number;
     objects: Array<GameObj<AreaComp>> = [];

@@ -3,7 +3,6 @@ import type { ButtonsDef } from "./app/inputBindings";
 import { SoundData } from "./assets/sound";
 import { loadSprite } from "./assets/sprite";
 import { createEmptyAudioBuffer } from "./audio/audio";
-import { DEF_HASH_GRID_SIZE } from "./constants/general";
 import { createContext } from "./core/context";
 import { createEngine } from "./core/engine";
 import beanSrc from "./data/assets/bean.png";
@@ -90,7 +89,6 @@ export const kaplay = <
 
     const { checkFrame } = createCollisionSystem({
         narrow: gopt.narrowPhaseCollisionAlgorithm || "gjk",
-        hgSize: gopt.hashGridSize || DEF_HASH_GRID_SIZE,
     });
 
     system("collision", checkFrame, [
