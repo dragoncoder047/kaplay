@@ -125,11 +125,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   @dragoncoder047
 - Changed the API of `HealthComp` - @amyspark-ng
 
-## [4000.0.0-alpha.20] - TBD
+## [4000.0.0-alpha.20] - 2025-06-15
 
 ### Added
 
-- Improved various doc entries.
+- Now you can use the frames of a sprite in an atlas also as a font -
+  @dragoncoder047
+- Improved various doc entries. - All Contributors.
 
 ### Fixed
 
@@ -137,17 +139,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   event wasn't being paused with `obj.paused` - @lajbel
 - Fixed all touch events having a bad transform - @lajbel
 - Fixed sprite scaling not working properly when letterbox - @mflerackers
-
-### Added
-
-- Now you can use the frames of a sprite in an atlas also as a font -
-  @dragoncoder047
+- Fixed "add" event running twice in `addLevel()` tiles - @lajbel
+- Fixed blend component having a wrong ID - @lajbel
 
 ### Removed
 
 - `loadPedit` was removed - @lajbel
 
-## [3001.0.19] - TBD
+## [3001.0.19] - 2025-06-15
 
 - Fixed `AreaComp#onClick()` attaching events to app, instead of object, so
   event wasn't being paused with `obj.paused` - @lajbel
