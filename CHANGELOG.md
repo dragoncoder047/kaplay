@@ -32,13 +32,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   ```js
   system("collision", () => {
     // system code
-  }, [LCEvents.AfterFixedUpdate, LCEvents.AfterUpdate]),
+  }, [SystemPhase.AfterFixedUpdate, SystemPhase.AfterUpdate]),
   ```
 
 - All game objects have methods `onTag()` and `onUntag()` for watching tag
   changes - @mflerackers
-- Added `LCEvents` enum to identify different lifecycle events in the game
-  loop - @mflerackers
+- Added `SystemPhase` enum to identify different lifecycle events in the game
+  loop that systems can hook into - @mflerackers
 - Blend mode is selectable to change how sprites are composited on top of each
   other - @mflerackers
 - Picture API to cache drawing of selected objects - @mflerackers
@@ -84,6 +84,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   line - @mflerackers
 - Added `sprite.play("anim", {preventRestart: true})` to allow play() to be
   called from update() and not reset the animation to frame 0 - @dragoncoder047
+- Added `throwError()` for trowing custom errors in the blue screen, even errors
+  KAPLAY can't handle. - @lajbel
 
 ### Fixed
 
@@ -126,6 +128,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   setting it to true (focused) will clear focus from all the other text inputs -
   @dragoncoder047
 - Changed the API of `HealthComp` - @amyspark-ng
+
+## [4000.0.0-alpha.21] - 2025-06-26
+
+### Added
+
+- Added `throwError()` for throwing custom errors to the blue screen, even
+  errors KAPLAY can't handle. - @lajbel
 
 ## [4000.0.0-alpha.20] - 2025-06-15
 

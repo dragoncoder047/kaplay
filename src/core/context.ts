@@ -83,7 +83,7 @@ import { KeepFlags } from "../ecs/entity/GameObjRaw";
 import { addKaboom } from "../ecs/entity/premade/addKaboom";
 import { addLevel } from "../ecs/entity/premade/addLevel";
 import { destroy, getTreeRoot } from "../ecs/entity/utils";
-import { system } from "../ecs/systems/systems";
+import { system, SystemPhase } from "../ecs/systems/systems";
 import { KEvent, KEventController, KEventHandler } from "../events/events";
 import {
     on,
@@ -245,6 +245,7 @@ import {
     downloadText,
 } from "../utils/dataURL";
 import type { Engine } from "./engine";
+import { throwError } from "./errors";
 import { plug } from "./plug";
 import { onCleanup, quit } from "./quit";
 
@@ -606,6 +607,7 @@ export const createContext = (
         // plugin
         plug,
         system,
+        SystemPhase,
         // char sets
         ASCII_CHARS,
         // dom
@@ -627,6 +629,7 @@ export const createContext = (
         WHITE: Color.WHITE,
         BLACK: Color.BLACK,
         quit,
+        throwError,
         // helpers
         KEvent,
         KEventHandler,
