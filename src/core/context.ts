@@ -80,6 +80,7 @@ import { rotate } from "../ecs/components/transform/rotate";
 import { scale } from "../ecs/components/transform/scale";
 import { z } from "../ecs/components/transform/z";
 import { KeepFlags } from "../ecs/entity/GameObjRaw";
+import { createPrefab, loadPrefab } from "../ecs/entity/prefab";
 import { addKaboom } from "../ecs/entity/premade/addKaboom";
 import { addLevel } from "../ecs/entity/premade/addLevel";
 import { destroy, getTreeRoot } from "../ecs/entity/utils";
@@ -136,7 +137,14 @@ import {
     setGravityDirection,
 } from "../game/gravity";
 import { getDefaultLayer, getLayers, layers, setLayers } from "../game/layers";
-import { getSceneName, go, onSceneLeave, scene } from "../game/scenes";
+import {
+    getSceneName,
+    go,
+    onSceneLeave,
+    popScene,
+    pushScene,
+    scene,
+} from "../game/scenes";
 import { anchorPt } from "../gfx/anchor";
 import { getBackground, setBackground } from "../gfx/bg";
 import { makeCanvas } from "../gfx/canvasBuffer";
@@ -260,6 +268,7 @@ export const createContext = (
     // aliases for root Game Obj operations
     const { game, app, audio, debug } = e;
     const add = game.root.add.bind(game.root);
+    const addPrefab = game.root.addPrefab.bind(game.root);
     const readd = game.root.readd.bind(game.root);
     const destroyAll = game.root.removeAll.bind(game.root);
     const get = game.root.get.bind(game.root);
@@ -286,8 +295,9 @@ export const createContext = (
         loadShaderURL,
         loadAseprite,
         loadBean,
-        loadHappy: loadHappy,
+        loadHappy,
         loadJSON,
+        loadPrefab,
         load,
         getSound,
         getFont,
@@ -351,6 +361,8 @@ export const createContext = (
         // obj
         getTreeRoot,
         add,
+        addPrefab,
+        createPrefab,
         destroy,
         destroyAll,
         get,
@@ -594,6 +606,8 @@ export const createContext = (
         getSceneName,
         go,
         onSceneLeave,
+        pushScene,
+        popScene,
         // layers
         layers: layers,
         getLayers: getLayers,
