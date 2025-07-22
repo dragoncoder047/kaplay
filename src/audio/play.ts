@@ -164,7 +164,14 @@ export function play(
     srcNode.detune.value = opt.detune ?? 0;
     srcNode.playbackRate.value = opt.speed ?? 1;
     srcNode.connect(panNode);
-    srcNode.addEventListener("ended", () => onEndEvents.trigger());
+    srcNode.onended = () => {
+        if (
+            getTime()
+                >= (srcNode.buffer?.duration ?? Number.POSITIVE_INFINITY)
+        ) {
+            onEndEvents.trigger();
+        }
+    };
     panNode.pan.value = opt.pan ?? 0;
     panNode.connect(gainNode);
     gainNode.connect(opt.connectTo ?? _k.audio.masterNode);
