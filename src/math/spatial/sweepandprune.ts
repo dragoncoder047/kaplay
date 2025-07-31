@@ -5,7 +5,7 @@ import type { GameObj } from "../../types";
 /**
  * Left or right edge of an object's bbox
  */
-class Edge {
+class SapEdge {
     obj: GameObj<AreaComp>;
     x: number;
     isLeft: boolean;
@@ -19,14 +19,16 @@ class Edge {
 
 /**
  * One dimensional sweep and prune
+ *
+ * @ignore
  */
 export class SweepAndPrune {
-    edges: Array<Edge>;
-    objects: Map<GameObj<AreaComp>, [Edge, Edge]>;
+    edges: Array<SapEdge>;
+    objects: Map<GameObj<AreaComp>, [SapEdge, SapEdge]>;
 
     constructor() {
         this.edges = [];
-        this.objects = new Map<GameObj<AreaComp>, [Edge, Edge]>();
+        this.objects = new Map<GameObj<AreaComp>, [SapEdge, SapEdge]>();
     }
 
     /**
@@ -35,8 +37,8 @@ export class SweepAndPrune {
      */
     add(obj: GameObj<AreaComp>) {
         if (this.objects.has(obj)) return;
-        const left = new Edge(obj, true);
-        const right = new Edge(obj, false);
+        const left = new SapEdge(obj, true);
+        const right = new SapEdge(obj, false);
         this.edges.push(left);
         this.edges.push(right);
         this.objects.set(obj, [left, right]);
