@@ -1,6 +1,6 @@
 import type { AreaComp } from "../../ecs/components/physics/area";
-import { isPaused } from "../../ecs/entity/utils";
 import type { GameObj } from "../../types";
+import { insertionSort } from "../sort";
 
 /**
  * Left or right edge of an object's bbox
@@ -73,15 +73,7 @@ export class SweepAndPrune {
             edges[0].x = bbox.pos.x;
             edges[1].x = bbox.pos.x + bbox.width;
         }
-        // Insertion sort. This is slow the first time, but faster afterwards as the list is nearly sorted
-        for (let i = 1; i < this.edges.length; i++) {
-            for (let j = i - 1; j >= 0; j--) {
-                if (this.edges[j].x < this.edges[j + 1].x) break;
-                const temp = this.edges[j];
-                this.edges[j] = this.edges[j + 1];
-                this.edges[j + 1] = temp;
-            }
-        }
+        insertionSort(this.edges, (a, b) => b.x > a.x);
     }
 
     /**
