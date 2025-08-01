@@ -328,12 +328,7 @@ export function area(opt: AreaCompOpt = {}): AreaComp {
                 this.onHover(() => _k.app.setCursor(this.area.cursor!));
             }
             this.onCollideUpdate((obj, col) => {
-                if (!obj.id) {
-                    if (!obj.exists()) return;
-                    throw new Error(
-                        "collided with object with no id (this should not happen)",
-                    );
-                }
+                if (!obj.exists()) return;
                 if (!colliding[obj.id]) {
                     this.trigger("collide", obj, col);
                 }
