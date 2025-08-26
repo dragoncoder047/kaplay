@@ -446,7 +446,6 @@ export const initApp = (
             : setHasOrIncludes(state.buttonState.released, btn);
     }
 
-
     function onTabResize(action: () => void): KEventController {
         return state.events.on("tabResize", action);
     }
