@@ -620,6 +620,7 @@ const PROPS_AFFECTING_TRANSFORM = new Set([
     "pos",
     "angle",
     "scale",
+    "skew",
 ]);
 
 export const GameObjRawPrototype: Omit<InternalGameObjRaw, AppEvents> = {
