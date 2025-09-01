@@ -24,12 +24,8 @@ import { FrameBuffer } from "../../gfx/FrameBuffer";
 import {
     flush,
     loadMatrix,
-    multRotate,
-    multScaleV,
-    multTranslateV,
     popTransform,
     pushTransform,
-    storeMatrix,
 } from "../../gfx/stack";
 import { Mat23 } from "../../math/math";
 import { calcTransform } from "../../math/various";
@@ -53,6 +49,7 @@ import type { LayerComp } from "../components/transform/layer";
 import type { PosComp } from "../components/transform/pos";
 import type { RotateComp } from "../components/transform/rotate";
 import type { ScaleComp } from "../components/transform/scale";
+import type { SkewComp } from "../components/transform/skew";
 import type { ZComp } from "../components/transform/z";
 import { make } from "./make";
 import { deserializePrefabAsset, type SerializedGameObj } from "./prefab";
@@ -260,7 +257,11 @@ export interface GameObjRaw {
     /**
      * This method is called to transform and collect objects which should be drawn layered
      */
-    collectAndTransform(objects: GameObj<any>[]): void;
+    collect(objects: GameObj<any>[]): void;
+    /**
+     * This method is called to transform objects
+     */
+    transformTree(): void;
     /**
      * Add a component.
      *
@@ -1148,20 +1149,11 @@ export const GameObjRawPrototype: Omit<InternalGameObjRaw, AppEvents> = {
             & InternalGameObjRaw
         >();
 
-        pushTransform();
-        if (this.pos) multTranslateV(this.pos);
-        if (this.angle) multRotate(this.angle);
-        if (this.scale) multScaleV(this.scale);
-
-        storeMatrix(this.transform);
-
         // For each child call collect
         for (let i = 0; i < this.children.length; i++) {
             if (this.children[i].hidden) continue;
-            this.children[i].collectAndTransform(objects);
+            this.children[i].collect(objects);
         }
-
-        popTransform();
 
         // Sort objects on layer, then z
         objects.sort((o1, o2) => {
@@ -1309,19 +1301,27 @@ export const GameObjRawPrototype: Omit<InternalGameObjRaw, AppEvents> = {
         this.trigger("drawInspect");
     },
 
-    collectAndTransform(
+    transformTree(
+        this: GameObj<
+            PosComp | ScaleComp | RotateComp | SkewComp | FixedComp | MaskComp
+        >,
+    ) {
+        pushTransform();
+
+        for (let i = 0; i < this.children.length; i++) {
+            if (this.children[i].hidden) continue;
+            this.children[i].transformTree();
+        }
+
+        popTransform();
+    },
+
+    collect(
         this: GameObj<
             PosComp | ScaleComp | RotateComp | FixedComp | MaskComp
         >,
         objects: GameObj<any>[],
     ) {
-        pushTransform();
-        if (this.pos) multTranslateV(this.pos);
-        if (this.angle) multRotate(this.angle);
-        if (this.scale) multScaleV(this.scale);
-
-        storeMatrix(this.transform);
-
         // Add to objects
         objects.push(this);
 
@@ -1334,11 +1334,9 @@ export const GameObjRawPrototype: Omit<InternalGameObjRaw, AppEvents> = {
                 this.drawTree();
             }
             else if (!this.mask) {
-                this.children[i].collectAndTransform(objects);
+                this.children[i].collect(objects);
             }
         }
-
-        popTransform();
     },
     // #endregion
 
