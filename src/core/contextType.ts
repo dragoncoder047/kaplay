@@ -59,9 +59,7 @@ import type {
     AnimateComp,
     AnimateCompOpt,
 } from "../ecs/components/misc/animate";
-import type {
-    ButtonComp
-} from "../ecs/components/misc/button";
+import type { ButtonComp } from "../ecs/components/misc/button";
 import type { CursorComp, CursorCompOpt } from "../ecs/components/misc/cursor";
 import type {
     FakeMouseComp,
@@ -74,10 +72,7 @@ import type {
 } from "../ecs/components/misc/layout";
 import type { LifespanCompOpt } from "../ecs/components/misc/lifespan";
 import type { NamedComp } from "../ecs/components/misc/named";
-import type {
-    SliderComp,
-    SliderCompOpt,
-} from "../ecs/components/misc/slider";
+import type { SliderComp, SliderCompOpt } from "../ecs/components/misc/slider";
 import type { StateComp } from "../ecs/components/misc/state";
 import type { StayComp } from "../ecs/components/misc/stay";
 import type { TextInputComp } from "../ecs/components/misc/textInput";
@@ -127,9 +122,7 @@ import type { Collision } from "../ecs/systems/Collision";
 import type { SystemPhase } from "../ecs/systems/systems";
 import type { GameObjEventNames, GameObjEvents } from "../events/eventMap";
 import type { KEvent, KEventController, KEventHandler } from "../events/events";
-import type {
-    GameEventHandlersForApp
-} from "../events/gameEventHandlers";
+import type { GameEventHandlersForApp } from "../events/gameEventHandlers";
 import type { AppScope, SceneScope } from "../events/scopes";
 import type { anchorPt } from "../gfx/anchor";
 import type { DrawBezierOpt } from "../gfx/draw/drawBezier";
