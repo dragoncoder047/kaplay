@@ -1,4 +1,5 @@
 import { onAdd, onDestroy, onUnuse, onUse } from "../../../events/globalEvents";
+import { onSceneLeave } from "../../../game/scenes";
 import { drawCircle } from "../../../gfx/draw/drawCircle";
 import { drawLine } from "../../../gfx/draw/drawLine";
 import { drawPolygon } from "../../../gfx/draw/drawPolygon";
@@ -205,6 +206,7 @@ function installSystem() {
             constraints.delete(obj as GameObj<Constraint>);
         }
     });
+    onSceneLeave(() => systemInstalled = false);
     system("constraint", () => {
         constraints.forEach(constraint => {
             constraint.apply();
