@@ -335,10 +335,10 @@ export class Mat23 {
         );
     }
     setMat23(m: Mat23) {
-        this.a = this.a;
-        this.b = this.b;
-        this.c = this.c;
-        this.d = this.d;
+        this.a = m.a;
+        this.b = m.b;
+        this.c = m.c;
+        this.d = m.d;
         this.e = m.e;
         this.f = m.f;
         this._inverse = m._inverse;
