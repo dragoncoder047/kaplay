@@ -18,12 +18,12 @@ import {
     updateTransformRecursive,
 } from "../../../math/various";
 import { Vec2 } from "../../../math/Vec2";
-import { _k } from "../../../shared";
 import type { Comp, GameObj } from "../../../types";
 import { system, SystemPhase } from "../../systems/systems";
 import type { PosComp } from "./pos";
 import type { RotateComp } from "./rotate";
 import type { ScaleComp } from "./scale";
+import type { SkewComp } from "./skew";
 
 export interface BoneComp extends Comp {
     /* Minimum angle should be between -180 and 180, and smaller than maximum angle */
@@ -357,13 +357,16 @@ export const constraint = {
                     this.constraint.strength,
                 );
                 const scale = this.transform.getScale();
+                const skew = this.transform.getSkew();
                 // Update world angle
-                this.transform.setTRS(
+                this.transform.setTRSS(
                     this.transform.e,
                     this.transform.f,
                     newAngle,
                     scale.x,
                     scale.y,
+                    skew.x,
+                    skew.y,
                 );
                 // Modify local angle
                 if (this.parent) {
@@ -407,13 +410,16 @@ export const constraint = {
                     this.constraint.strength,
                 );
                 const angle = this.transform.getRotation();
+                const skew = this.transform.getSkew();
                 // Update world scale
-                this.transform.setTRS(
+                this.transform.setTRSS(
                     this.transform.e,
                     this.transform.f,
                     angle,
                     newScale.x,
                     newScale.y,
+                    skew.x,
+                    skew.y,
                 );
                 // Modify local scale
                 if (this.parent) {
@@ -449,41 +455,56 @@ export const constraint = {
             },
             apply(
                 this: GameObj<
-                    PosComp | RotateComp | ScaleComp | TransformConstraintComp
+                    | PosComp
+                    | RotateComp
+                    | ScaleComp
+                    | SkewComp
+                    | TransformConstraintComp
                 >,
             ) {
                 // We use world properties
+                const targetTransform = this.constraint.target.transform;
+                const strength = this.constraint.strength;
                 const newX = lerp(
                     this.transform.e,
-                    this.constraint.target.transform.e,
-                    this.constraint.strength,
+                    targetTransform.e,
+                    strength,
                 );
                 const newY = lerp(
                     this.transform.f,
-                    this.constraint.target.transform.f,
-                    this.constraint.strength,
+                    targetTransform.f,
+                    strength,
                 );
                 const srcAngle = this.transform.getRotation();
-                const dstAngle = this.constraint.target.transform.getRotation();
+                const dstAngle = targetTransform.getRotation();
                 const newAngle = lerp(
                     srcAngle,
                     dstAngle,
-                    this.constraint.strength,
+                    strength,
                 );
                 const srcScale = this.transform.getScale();
-                const dstScale = this.constraint.target.transform.getScale();
+                const dstScale = targetTransform.getScale();
                 const newScale = lerp(
                     srcScale,
                     dstScale,
+                    strength,
+                );
+                const srcSkew = this.transform.getSkew();
+                const dstSkew = targetTransform.getSkew();
+                const newSkew = lerp(
+                    srcSkew,
+                    dstSkew,
                     this.constraint.strength,
                 );
                 // Update world properties
-                this.transform.setTRS(
+                this.transform.setTRSS(
                     newX,
                     newY,
                     newAngle,
                     newScale.x,
                     newScale.y,
+                    newSkew.x,
+                    newSkew.y,
                 );
                 // Modify local properties
                 if (this.parent) {
@@ -494,12 +515,14 @@ export const constraint = {
                     this.pos.y = transform.f;
                     this.angle = transform.getRotation();
                     this.scale = transform.getScale();
+                    this.skew = transform.getSkew();
                 }
                 else {
                     this.pos.x = newX;
                     this.pos.y = newY;
                     this.angle = newAngle;
                     this.scale = newScale;
+                    this.skew = newSkew;
                 }
                 updateChildrenTransformRecursive(this);
             },
@@ -612,12 +635,15 @@ export const constraint = {
                             // Update global transform
                             const rotation = effectorTransform.getRotation();
                             const scale = effectorTransform.getScale();
-                            effectorTransform.setTRS(
+                            const skew = effectorTransform.getSkew();
+                            effectorTransform.setTRSS(
                                 effectorTransform.e,
                                 effectorTransform.f,
                                 rotation + angleCorrection,
                                 scale.x,
                                 scale.y,
+                                skew.x,
+                                skew.y,
                             );
                             if (effector.parent) {
                                 // Calculate local rotation
@@ -815,12 +841,15 @@ export const constraint = {
                                 );
                                 // Keep the translation and scale
                                 const scale = parentTransform.getScale();
-                                parentTransform.setTRS(
+                                const skew = parentTransform.getSkew();
+                                parentTransform.setTRSS(
                                     parentTransform.e,
                                     parentTransform.f,
                                     angle, // orient the parent towards the object
                                     scale.x,
                                     scale.y,
+                                    skew.x,
+                                    skew.y,
                                 );
                                 if (parent.parent) {
                                     const transform = parent.parent.transform

@@ -335,10 +335,10 @@ export class Mat23 {
         );
     }
     setMat23(m: Mat23) {
-        this.a = m.a;
-        this.b = m.b;
-        this.c = m.c;
-        this.d = m.d;
+        this.a = this.a;
+        this.b = this.b;
+        this.c = this.c;
+        this.d = this.d;
         this.e = m.e;
         this.f = m.f;
         this._inverse = m._inverse;
@@ -357,14 +357,24 @@ export class Mat23 {
         this._inverse = null;
         return this;
     }
-    setTRS(x: number, y: number, angle: number, sx: number, sy: number) {
-        const radians = angle * Math.PI / 180;
+    setTRSS(
+        x: number,
+        y: number,
+        angle: number,
+        sx: number,
+        sy: number,
+        skx: number,
+        sky: number,
+    ) {
+        const radians = deg2rad(angle);
         const c = Math.cos(radians);
         const s = Math.sin(radians);
-        this.a = c * sx;
-        this.b = s * sx;
-        this.c = -s * sy;
-        this.d = c * sy;
+        skx = Math.tan(deg2rad(skx));
+        sky = Math.tan(deg2rad(sky));
+        this.a = c * sx - s * sy * sky;
+        this.b = s * sx + c * sy * sky;
+        this.c = c * sx * skx - s * sy;
+        this.d = s * sx * skx + c * sy;
         this.e = x;
         this.f = y;
     }
@@ -532,14 +542,14 @@ export class Mat23 {
 
     get inverse() {
         if (this._inverse) return this._inverse;
-        const det = this.det;
+        const { a, b, c, d, e, f, det } = this;
         this._inverse = new Mat23(
-            this.d / det,
-            -this.b / det,
-            -this.c / det,
-            this.a / det,
-            (this.c * this.f - this.d * this.e) / det,
-            (this.b * this.e - this.a * this.f) / det,
+            d / det,
+            -b / det,
+            -c / det,
+            a / det,
+            (c * f - d * e) / det,
+            (b * e - a * f) / det,
         );
         return this._inverse;
     }
@@ -552,49 +562,38 @@ export class Mat23 {
     //       b = sx * sin(angle)
     // and atan2 does y / x, thus sx is eliminated
     getRotation() {
-        if (this.a || this.b) {
-            return rad2deg(
-                Math.atan2(this.b, this.a),
-            );
+        const { a, b, c, d } = this;
+        if (a || b) {
+            return rad2deg(Math.atan2(b, a));
         }
-        else {
-            return 90 - rad2deg(
-                Math.atan2(this.d, this.c),
-            );
+        else if (c || d) {
+            return 90 - rad2deg(Math.atan2(d, c));
         }
+        return 0;
     }
-    // Using cos^2 + sin^2 = 1, thus sqrt(a^2 + b^2) contains the scale
-    // since a = sx * cos(angle)
-    //       b = sx * sin(angle)
     getScale() {
-        const x = Math.hypot(this.a, this.b);
-        const y = Math.hypot(this.c, this.d);
-        if (x > 0) return new Vec2(x, this.det / y);
-        else return new Vec2(this.det / x, y);
+        const { a, b, c, d, det } = this;
+        if (det != 0) {
+            if (a || b) {
+                const r = Math.hypot(a, b);
+                return vec2(r, det / r);
+            }
+            else if (c || d) {
+                const s = Math.hypot(c, d);
+                return vec2(det / s, s);
+            }
+        }
+        return vec2(0);
     }
     getSkew() {
-        if (this.a || this.b) {
-            return new Vec2(
-                rad2deg(
-                    Math.atan2(
-                        this.a * this.c + this.b * this.d,
-                        this.a * this.a + this.b * this.b,
-                    ),
-                ),
-                0,
-            );
+        const { a, b, c, d } = this;
+        if (a || b) {
+            return vec2(rad2deg(Math.atan2(a * c + b * d, a * a + b * b)), 0);
         }
-        else {
-            return new Vec2(
-                0,
-                rad2deg(
-                    Math.atan2(
-                        this.a * this.c + this.b * this.d,
-                        this.c * this.c + this.d * this.d,
-                    ),
-                ),
-            );
+        else if (c || d) {
+            return vec2(0, rad2deg(Math.atan2(a * c + b * d, c * c + d * d)));
         }
+        return vec2(0);
     }
 }
 
