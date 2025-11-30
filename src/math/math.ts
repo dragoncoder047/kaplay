@@ -357,6 +357,17 @@ export class Mat23 {
         this._inverse = null;
         return this;
     }
+    setTRS(x: number, y: number, angle: number, sx: number, sy: number) {
+        const radians = angle * Math.PI / 180;
+        const c = Math.cos(radians);
+        const s = Math.sin(radians);
+        this.a = c * sx;
+        this.b = s * sx;
+        this.c = -s * sy;
+        this.d = c * sy;
+        this.e = x;
+        this.f = y;
+    }
     setTRSS(
         x: number,
         y: number,
