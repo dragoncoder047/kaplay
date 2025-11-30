@@ -1,18 +1,16 @@
 import { onAdd, onDestroy, onUnuse, onUse } from "../../../events/globalEvents";
 import { drawCircle } from "../../../gfx/draw/drawCircle";
-import { drawLine } from "../../../gfx/draw/drawLine";
 import { drawPolygon } from "../../../gfx/draw/drawPolygon";
 import {
     loadMatrix,
     multRotate,
     popTransform,
-    pushMatrix,
     pushTransform,
 } from "../../../gfx/stack";
 import { clamp } from "../../../math/clamp";
 import { Color } from "../../../math/color";
 import { lerp } from "../../../math/lerp";
-import { deg2rad, rad2deg, vec2 } from "../../../math/math";
+import { rad2deg, vec2 } from "../../../math/math";
 import {
     calcTransform,
     clampAngle,
@@ -20,18 +18,12 @@ import {
     updateTransformRecursive,
 } from "../../../math/various";
 import { Vec2 } from "../../../math/Vec2";
+import { _k } from "../../../shared";
 import type { Comp, GameObj } from "../../../types";
 import { system, SystemPhase } from "../../systems/systems";
 import type { PosComp } from "./pos";
 import type { RotateComp } from "./rotate";
 import type { ScaleComp } from "./scale";
-
-export type BoneOpt = {
-    /* Minimum angle should be between -180 and 180, and smaller than maximum angle */
-    minAngle?: number;
-    /* Maximum angle should be between -180 and 180, and greater than minimum angle */
-    maxAngle?: number;
-};
 
 export interface BoneComp extends Comp {
     /* Minimum angle should be between -180 and 180, and smaller than maximum angle */
@@ -103,7 +95,7 @@ export type RotationConstraintOpt = {
     /**
      * The factor applied before applying the constraint. For example 0.5 will only apply half of the rotation of the target
      */
-    scale?: number;
+    ratio?: number;
     /**
      * Between 0 and 1. The percentage of the property being overwritten
      */
@@ -114,7 +106,7 @@ export interface RotationConstraintComp extends Constraint {
     constraint: {
         target: GameObj;
         offset: number;
-        scale: number;
+        ratio: number;
         strength: number;
     };
 }
@@ -274,6 +266,7 @@ export const constraint = {
                         this.pos.y = this.transform.f;
                     }
                 }
+                updateChildrenTransformRecursive(this);
             },
         };
     },
@@ -322,6 +315,7 @@ export const constraint = {
                     this.pos.x = this.transform.e;
                     this.pos.y = this.transform.f;
                 }
+                updateChildrenTransformRecursive(this);
             },
         };
     },
@@ -337,11 +331,12 @@ export const constraint = {
         opt: RotationConstraintOpt,
     ): RotationConstraintComp {
         installSystem();
+        let fullTurns = 0, prevDstAngle = 0;
         return {
             id: "constraint",
             constraint: {
                 target: target,
-                scale: opt.scale ?? 1,
+                ratio: opt.ratio ?? 1,
                 strength: opt.strength ?? 1,
                 offset: opt.offset || 0,
             },
@@ -349,9 +344,16 @@ export const constraint = {
                 // We use world rotation
                 const srcAngle = this.transform.getRotation();
                 const dstAngle = this.constraint.target.transform.getRotation();
+                // Track full-turn boundaries in case the ratio is not a perfect integer
+                if (Math.abs(dstAngle - prevDstAngle) > 180) {
+                    if (dstAngle < prevDstAngle) fullTurns++;
+                    else fullTurns--;
+                }
+                prevDstAngle = dstAngle;
                 const newAngle = lerp(
                     srcAngle,
-                    dstAngle * this.constraint.scale + this.constraint.offset,
+                    (dstAngle + 360 * fullTurns) * this.constraint.ratio
+                        + this.constraint.offset,
                     this.constraint.strength,
                 );
                 const scale = this.transform.getScale();
@@ -373,6 +375,7 @@ export const constraint = {
                 else {
                     this.angle = newAngle;
                 }
+                updateChildrenTransformRecursive(this);
             },
         };
     },
@@ -422,6 +425,7 @@ export const constraint = {
                 else {
                     this.scale = newScale;
                 }
+                updateChildrenTransformRecursive(this);
             },
         };
     },
@@ -497,6 +501,7 @@ export const constraint = {
                     this.angle = newAngle;
                     this.scale = newScale;
                 }
+                updateChildrenTransformRecursive(this);
             },
         };
     },
@@ -674,7 +679,7 @@ export const constraint = {
                                 const px = s * bx;
                                 const py = s * by;
                                 // Desired length
-                                let len = Math.sqrt(px * px + py * py);
+                                let len = Math.hypot(px, py);
                                 // New length = desired length clamped
                                 const nlen = clamp(
                                     len,
@@ -682,9 +687,9 @@ export const constraint = {
                                     effector.parent.maxLength,
                                 );
                                 // Old length
-                                const olen = Math.sqrt(
-                                    effector.pos.x * effector.pos.x
-                                        + effector.pos.y * effector.pos.y,
+                                const olen = Math.hypot(
+                                    effector.pos.x,
+                                    effector.pos.y,
                                 );
                                 // Scale to desired length clamped
                                 effector.pos.x *= nlen / olen;
@@ -707,11 +712,10 @@ export const constraint = {
                     }
                 },
                 drawInspect(this: GameObj<IKConstraintComp>) {
-                    const endEffector = chain[0] = this;
+                    chain[0] = this;
                     for (let i = 1; i <= depth; i++) {
                         chain[i] = chain[i - 1].parent!;
                     }
-                    let p1 = chain[depth].pos;
                     pushTransform();
                     for (let i = depth; i > 0; i--) {
                         const bone = chain[i];
@@ -853,11 +857,10 @@ export const constraint = {
                     }
                 },
                 drawInspect(this: GameObj<IKConstraintComp>) {
-                    const endEffector = chain[0] = this;
+                    chain[0] = this;
                     for (let i = 1; i <= depth; i++) {
                         chain[i] = chain[i - 1].parent!;
                     }
-                    let p1 = chain[depth].pos;
                     pushTransform();
                     for (let i = depth; i > 0; i--) {
                         const bone = chain[i];

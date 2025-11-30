@@ -68,7 +68,7 @@ onClick(() => {
             },
             destroy() {
                 const a = results.map(d =>
-                    Math.sqrt((d[1] - d[2]) * (d[1] - d[2]))
+                    Math.abs(d[1] - d[2])
                 ).reduce((s, v) => s + v, 0) / results.length;
                 trajectoryText.text = `${a.toFixed(2)}`;
             },

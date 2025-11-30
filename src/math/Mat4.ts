@@ -207,12 +207,12 @@ export class Mat4 {
     getScale() {
         if (this.m[0] != 0 || this.m[1] != 0) {
             const det = this.m[0] * this.m[5] - this.m[1] * this.m[4];
-            const r = Math.sqrt(this.m[0] * this.m[0] + this.m[1] * this.m[1]);
+            const r = Math.hypot(this.m[0], this.m[1]);
             return new Vec2(r, det / r);
         }
         else if (this.m[4] != 0 || this.m[5] != 0) {
             const det = this.m[0] * this.m[5] - this.m[1] * this.m[4];
-            const s = Math.sqrt(this.m[4] * this.m[4] + this.m[5] * this.m[5]);
+            const s = Math.hypot(this.m[4], this.m[5]);
             return new Vec2(det / s, s);
         }
         else {
@@ -222,7 +222,7 @@ export class Mat4 {
 
     getRotation() {
         if (this.m[0] != 0 || this.m[1] != 0) {
-            const r = Math.sqrt(this.m[0] * this.m[0] + this.m[1] * this.m[1]);
+            const r = Math.hypot(this.m[0], this.m[1]);
             return rad2deg(
                 this.m[1] > 0
                     ? Math.acos(this.m[0] / r)
@@ -230,7 +230,7 @@ export class Mat4 {
             );
         }
         else if (this.m[4] != 0 || this.m[5] != 0) {
-            const s = Math.sqrt(this.m[4] * this.m[4] + this.m[5] * this.m[5]);
+            const s = Math.hypot(this.m[4], this.m[5]);
             return rad2deg(
                 Math.PI / 2 - (this.m[5] > 0
                     ? Math.acos(-this.m[4] / s)
@@ -244,7 +244,7 @@ export class Mat4 {
 
     getSkew() {
         if (this.m[0] != 0 || this.m[1] != 0) {
-            const r = Math.sqrt(this.m[0] * this.m[0] + this.m[1] * this.m[1]);
+            const r = Math.hypot(this.m[0], this.m[1]);
             return new Vec2(
                 Math.atan(this.m[0] * this.m[4] + this.m[1] * this.m[5])
                     / (r * r),
@@ -252,7 +252,7 @@ export class Mat4 {
             );
         }
         else if (this.m[4] != 0 || this.m[5] != 0) {
-            const s = Math.sqrt(this.m[4] * this.m[4] + this.m[5] * this.m[5]);
+            const s = Math.hypot(this.m[4], this.m[5]);
             return new Vec2(
                 0,
                 Math.atan(this.m[0] * this.m[4] + this.m[1] * this.m[5])

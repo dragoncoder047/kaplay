@@ -198,7 +198,7 @@ export class NavMesh implements Graph {
         const b = this._polygons[indexB];
         const x = a.centroid.x - b.centroid.x;
         const y = a.centroid.y - b.centroid.y;
-        return Math.sqrt(x * x + y * y);
+        return Math.hypot(x, y);
     }
 
     getPath(start: number, goal: number): number[] {

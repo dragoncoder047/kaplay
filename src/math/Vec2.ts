@@ -224,12 +224,10 @@ export class Vec2 {
      * @param v - The vector
      * @param other - The other vector
      *
-     * @returns The between the vectors
+     * @returns The distance between the vectors
      */
     static dist(v: Vec2, other: Vec2): number {
-        const x = v.x - other.x;
-        const y = v.y - other.y;
-        return Math.sqrt(x * x + y * y);
+        return Math.hypot(v.x - other.x, v.y - other.y);
     }
 
     /** Get squared distance between another vector */
@@ -267,7 +265,7 @@ export class Vec2 {
      * @returns The length of the vector
      */
     static len(v: Vec2) {
-        return Math.sqrt(v.x * v.x + v.y * v.y);
+        return Math.hypot(v.x, v.y);
     }
 
     /**

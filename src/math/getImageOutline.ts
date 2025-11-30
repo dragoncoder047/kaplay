@@ -83,7 +83,7 @@ function getDistance(c: Vec2, a: Vec2, b: Vec2): number {
     const B = a.x - b.x;
     const C = b.x * a.y - a.x * b.y;
 
-    return Math.abs(A * c.x + B * c.y + C) / Math.sqrt(A * A + B * B);
+    return Math.abs(A * c.x + B * c.y + C) / Math.hypot(A, B);
 }
 
 // *****************************************************

@@ -126,7 +126,7 @@ export class Grid implements Graph {
         const x = (a % this._tileWidth) - (b % this._tileWidth);
         const y = Math.floor(a / this._tileWidth)
             - Math.floor(b / this._tileWidth);
-        return Math.sqrt(x * x + y * y);
+        return Math.hypot(x, y);
     }
 
     getPath(start: number, goal: number): number[] {

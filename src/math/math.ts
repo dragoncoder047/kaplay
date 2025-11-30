@@ -567,10 +567,10 @@ export class Mat23 {
     // since a = sx * cos(angle)
     //       b = sx * sin(angle)
     getScale() {
-        return new Vec2(
-            Math.sqrt(this.a * this.a + this.b * this.b),
-            Math.sqrt(this.c * this.c + this.d * this.d),
-        );
+        const x = Math.hypot(this.a, this.b);
+        const y = Math.hypot(this.c, this.d);
+        if (x > 0) return new Vec2(x, this.det / y);
+        else return new Vec2(this.det / x, y);
     }
     getSkew() {
         if (this.a || this.b) {
@@ -2281,8 +2281,8 @@ export class Ellipse {
             const vx = this.radiusY * s;
             const vy = this.radiusY * c;
 
-            const halfwidth = Math.sqrt(ux * ux + vx * vx);
-            const halfheight = Math.sqrt(uy * uy + vy * vy);
+            const halfwidth = Math.hypot(ux, vx);
+            const halfheight = Math.hypot(uy, vy);
 
             return Rect.fromPoints(
                 this.center.sub(vec2(halfwidth, halfheight)),
