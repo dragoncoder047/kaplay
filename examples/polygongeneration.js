@@ -32,7 +32,7 @@ add([
     polygon(cog2),
     color(RED),
     rotate(0),
-    constraint.rotation(blueCog, { strength: 1, scale: -32 / 24 }),
+    constraint.rotation(blueCog, { strength: 1, ratio: -32 / 24 }),
     area(),
     "cog",
 ]);

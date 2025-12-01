@@ -50,7 +50,7 @@ const obj4 = add([
     sprite("bean"),
     anchor("center"),
     area(),
-    constraint.rotation(obj3, { strength: 1, offset: 90, scale: -1 }),
+    constraint.rotation(obj3, { strength: 1, offset: 90, ratio: -1 }),
     "obj",
     "constraint",
 ]);
