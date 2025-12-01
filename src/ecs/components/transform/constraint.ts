@@ -244,13 +244,13 @@ export const constraint = {
                     this.transform.e = lerp(
                         this.transform.e,
                         this.constraint.target.transform.e
-                            + d.x / l * this.constraint.distance,
+                        + d.x / l * this.constraint.distance,
                         this.constraint.strength,
                     );
                     this.transform.f = lerp(
                         this.transform.f,
                         this.constraint.target.transform.f
-                            + d.y / l * this.constraint.distance,
+                        + d.y / l * this.constraint.distance,
                         this.constraint.strength,
                     );
                     // Modify local position
@@ -294,13 +294,13 @@ export const constraint = {
                 this.transform.e = lerp(
                     this.transform.e,
                     this.constraint.target.transform.e
-                        + this.constraint.offset.x,
+                    + this.constraint.offset.x,
                     this.constraint.strength,
                 );
                 this.transform.f = lerp(
                     this.transform.f,
                     this.constraint.target.transform.f
-                        + this.constraint.offset.x,
+                    + this.constraint.offset.x,
                     this.constraint.strength,
                 );
                 // Modify local position
@@ -353,32 +353,20 @@ export const constraint = {
                 const newAngle = lerp(
                     srcAngle,
                     (dstAngle + 360 * fullTurns) * this.constraint.ratio
-                        + this.constraint.offset,
+                    + this.constraint.offset,
                     this.constraint.strength,
-                );
-                const scale = this.transform.getScale();
-                const skew = this.transform.getSkew();
-                // Update world angle
-                this.transform.setTRSS(
-                    this.transform.e,
-                    this.transform.f,
-                    newAngle,
-                    scale.x,
-                    scale.y,
-                    skew.x,
-                    skew.y,
                 );
                 // Modify local angle
                 if (this.parent) {
                     const transform = this.parent?.transform.inverse.mul(
                         this.transform,
                     );
-                    this.angle = transform.getRotation();
+                    this.angle = transform.getRotation() + newAngle - srcAngle;
                 }
                 else {
                     this.angle = newAngle;
                 }
-                updateChildrenTransformRecursive(this);
+                updateTransformRecursive(this);
             },
         };
     },
@@ -409,29 +397,17 @@ export const constraint = {
                     dstScale,
                     this.constraint.strength,
                 );
-                const angle = this.transform.getRotation();
-                const skew = this.transform.getSkew();
-                // Update world scale
-                this.transform.setTRSS(
-                    this.transform.e,
-                    this.transform.f,
-                    angle,
-                    newScale.x,
-                    newScale.y,
-                    skew.x,
-                    skew.y,
-                );
                 // Modify local scale
                 if (this.parent) {
                     const transform = this.parent?.transform.inverse.mul(
                         this.transform,
                     );
-                    this.scale = transform.getScale();
+                    this.scale = transform.getScale().add(newScale.x - srcScale.x, newScale.y - srcScale.y);
                 }
                 else {
                     this.scale = newScale;
                 }
-                updateChildrenTransformRecursive(this);
+                updateTransformRecursive(this);
             },
         };
     },
