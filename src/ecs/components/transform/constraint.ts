@@ -356,17 +356,29 @@ export const constraint = {
                         + this.constraint.offset,
                     this.constraint.strength,
                 );
+                const scale = this.transform.getScale();
+                const skew = this.transform.getSkew();
+                // Update world angle
+                this.transform.setTRSS(
+                    this.transform.e,
+                    this.transform.f,
+                    newAngle,
+                    scale.x,
+                    scale.y,
+                    skew.x,
+                    skew.y,
+                );
                 // Modify local angle
                 if (this.parent) {
                     const transform = this.parent?.transform.inverse.mul(
                         this.transform,
                     );
-                    this.angle = transform.getRotation() + newAngle - srcAngle;
+                    this.angle = transform.getRotation();
                 }
                 else {
                     this.angle = newAngle;
                 }
-                updateTransformRecursive(this);
+                updateChildrenTransformRecursive(this);
             },
         };
     },
@@ -397,20 +409,29 @@ export const constraint = {
                     dstScale,
                     this.constraint.strength,
                 );
+                const angle = this.transform.getRotation();
+                const skew = this.transform.getSkew();
+                // Update world scale
+                this.transform.setTRSS(
+                    this.transform.e,
+                    this.transform.f,
+                    angle,
+                    newScale.x,
+                    newScale.y,
+                    skew.x,
+                    skew.y,
+                );
                 // Modify local scale
                 if (this.parent) {
                     const transform = this.parent?.transform.inverse.mul(
                         this.transform,
                     );
-                    this.scale = transform.getScale().add(
-                        newScale.x - srcScale.x,
-                        newScale.y - srcScale.y,
-                    );
+                    this.scale = transform.getScale();
                 }
                 else {
                     this.scale = newScale;
                 }
-                updateTransformRecursive(this);
+                updateChildrenTransformRecursive(this);
             },
         };
     },
