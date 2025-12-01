@@ -3,8 +3,6 @@
 // - move Vec2 to it's own file
 
 import { resolveSprite } from "../assets/sprite";
-import { drawCircle } from "../gfx/draw/drawCircle";
-import { drawPolygon, type DrawPolygonOpt } from "../gfx/draw/drawPolygon";
 import { _k } from "../shared";
 import type { GameObj, RNGValue, Shape } from "../types";
 import { clamp } from "./clamp";

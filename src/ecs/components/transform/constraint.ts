@@ -244,13 +244,13 @@ export const constraint = {
                     this.transform.e = lerp(
                         this.transform.e,
                         this.constraint.target.transform.e
-                        + d.x / l * this.constraint.distance,
+                            + d.x / l * this.constraint.distance,
                         this.constraint.strength,
                     );
                     this.transform.f = lerp(
                         this.transform.f,
                         this.constraint.target.transform.f
-                        + d.y / l * this.constraint.distance,
+                            + d.y / l * this.constraint.distance,
                         this.constraint.strength,
                     );
                     // Modify local position
@@ -294,13 +294,13 @@ export const constraint = {
                 this.transform.e = lerp(
                     this.transform.e,
                     this.constraint.target.transform.e
-                    + this.constraint.offset.x,
+                        + this.constraint.offset.x,
                     this.constraint.strength,
                 );
                 this.transform.f = lerp(
                     this.transform.f,
                     this.constraint.target.transform.f
-                    + this.constraint.offset.x,
+                        + this.constraint.offset.x,
                     this.constraint.strength,
                 );
                 // Modify local position
@@ -353,7 +353,7 @@ export const constraint = {
                 const newAngle = lerp(
                     srcAngle,
                     (dstAngle + 360 * fullTurns) * this.constraint.ratio
-                    + this.constraint.offset,
+                        + this.constraint.offset,
                     this.constraint.strength,
                 );
                 // Modify local angle
@@ -402,7 +402,10 @@ export const constraint = {
                     const transform = this.parent?.transform.inverse.mul(
                         this.transform,
                     );
-                    this.scale = transform.getScale().add(newScale.x - srcScale.x, newScale.y - srcScale.y);
+                    this.scale = transform.getScale().add(
+                        newScale.x - srcScale.x,
+                        newScale.y - srcScale.y,
+                    );
                 }
                 else {
                     this.scale = newScale;
