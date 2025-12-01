@@ -244,13 +244,13 @@ export const constraint = {
                     this.transform.e = lerp(
                         this.transform.e,
                         this.constraint.target.transform.e
-                            + d.x / l * this.constraint.distance,
+                        + d.x / l * this.constraint.distance,
                         this.constraint.strength,
                     );
                     this.transform.f = lerp(
                         this.transform.f,
                         this.constraint.target.transform.f
-                            + d.y / l * this.constraint.distance,
+                        + d.y / l * this.constraint.distance,
                         this.constraint.strength,
                     );
                     // Modify local position
@@ -294,13 +294,13 @@ export const constraint = {
                 this.transform.e = lerp(
                     this.transform.e,
                     this.constraint.target.transform.e
-                        + this.constraint.offset.x,
+                    + this.constraint.offset.x,
                     this.constraint.strength,
                 );
                 this.transform.f = lerp(
                     this.transform.f,
                     this.constraint.target.transform.f
-                        + this.constraint.offset.x,
+                    + this.constraint.offset.x,
                     this.constraint.strength,
                 );
                 // Modify local position
@@ -342,20 +342,23 @@ export const constraint = {
             },
             apply(this: GameObj<RotateComp | RotationConstraintComp>) {
                 // We use world rotation
-                const srcAngle = this.transform.getRotation();
-                const dstAngle = this.constraint.target.transform.getRotation();
+                let srcAngle = this.transform.getRotation();
+                let dstAngle = this.constraint.target.transform.getRotation();
                 // Track full-turn boundaries in case the ratio is not a perfect integer
                 if (Math.abs(dstAngle - prevDstAngle) > 180) {
                     if (dstAngle < prevDstAngle) fullTurns++;
                     else fullTurns--;
                 }
                 prevDstAngle = dstAngle;
-                const newAngle = lerp(
-                    srcAngle,
-                    (dstAngle + 360 * fullTurns) * this.constraint.ratio
-                        + this.constraint.offset,
-                    this.constraint.strength,
-                );
+                dstAngle += 360 * fullTurns;
+                dstAngle *= this.constraint.ratio;
+                dstAngle += this.constraint.offset;
+                dstAngle %= 360;
+                srcAngle %= 360;
+                let diff = dstAngle - srcAngle;
+                if (diff > 180) diff -= 360;
+                else if (diff < -180) diff += 360;
+                const newAngle = srcAngle + diff * this.constraint.strength;
                 const scale = this.transform.getScale();
                 const skew = this.transform.getSkew();
                 // Update world angle
