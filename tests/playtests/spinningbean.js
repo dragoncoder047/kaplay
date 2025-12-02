@@ -12,6 +12,7 @@ const spinningBean = add([
         },
     },
 ]);
+loop(90 / 200, () => spinningBean.paused = !spinningBean.paused);
 
 const scalingBean = add([
     pos(200, 100),
