@@ -33,7 +33,7 @@ export class Asset<D> {
         }).catch((err) => {
             this.error = err;
 
-            if (this.onErrorEvents.numListeners() > 0) {
+            if (this.onErrorEvents.hasListeners()) {
                 this.onErrorEvents.trigger(err);
             }
             else {

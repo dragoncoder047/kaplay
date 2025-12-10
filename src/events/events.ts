@@ -86,7 +86,7 @@ export class KEvent<Args extends any[] = any[]> {
         return ev;
     }
     addOnce(
-        action: (...args: (Args | PromiseLike<Args>)[]) => void,
+        action: (...args: Args) => void,
     ): KEventController {
         const ev = this.add((...args) => {
             ev.cancel();
@@ -95,7 +95,7 @@ export class KEvent<Args extends any[] = any[]> {
         return ev;
     }
     next(): Promise<Args> {
-        return new Promise((res) => this.addOnce(res));
+        return new Promise(resolve => this.addOnce((...args) => resolve(args)));
     }
     trigger(...args: Args) {
         this.handlers.forEach((action) => {
@@ -110,8 +110,8 @@ export class KEvent<Args extends any[] = any[]> {
             }
         });
     }
-    numListeners(): number {
-        return this.handlers.size;
+    hasListeners(): boolean {
+        return this.handlers.size > 0;
     }
     clear() {
         this.handlers.clear();
@@ -125,42 +125,29 @@ export class KEventHandler<EventMap extends Record<string, any[]>> {
             [Name in keyof EventMap]: KEvent<EventMap[Name]>;
         }
     > = {};
-    registers: Partial<
-        {
-            [Name in keyof EventMap]: Registry<
-                (...args: EventMap[Name]) => void
-            >;
+    private _get<Name extends keyof EventMap>(name: Name) {
+        if (!this.handlers[name]) {
+            this.handlers[name] = new KEvent<EventMap[Name]>();
         }
-    > = {};
+        return this.handlers[name]!;
+    }
     on<Name extends keyof EventMap>(
         name: Name,
         action: (...args: EventMap[Name]) => void,
     ): KEventController {
-        if (!this.handlers[name]) {
-            this.handlers[name] = new KEvent<EventMap[Name]>();
-        }
-        return this.handlers[name].add(action);
+        return this._get(name).add(action);
     }
     onOnce<Name extends keyof EventMap>(
         name: Name,
         action: (...args: EventMap[Name]) => void,
     ): KEventController {
-        const ev = this.on(name, (...args) => {
-            ev.cancel();
-            action(...args);
-        });
-        return ev;
+        return this._get(name).addOnce(action);
     }
-    next<Name extends keyof EventMap>(name: Name): Promise<unknown> {
-        return new Promise((res) => {
-            // TODO: can only pass 1 val to resolve()
-            this.onOnce(name, (...args: EventMap[Name]) => res(args[0]));
-        });
+    next<Name extends keyof EventMap>(name: Name): Promise<EventMap[Name]> {
+        return this._get(name).next();
     }
     trigger<Name extends keyof EventMap>(name: Name, ...args: EventMap[Name]) {
-        if (this.handlers[name]) {
-            this.handlers[name].trigger(...args);
-        }
+        this.handlers[name]?.trigger(...args);
     }
     remove<Name extends keyof EventMap>(name: Name) {
         delete this.handlers[name];
@@ -168,7 +155,7 @@ export class KEventHandler<EventMap extends Record<string, any[]>> {
     clear() {
         this.handlers = {};
     }
-    numListeners<Name extends keyof EventMap>(name: Name): number {
-        return this.handlers[name]?.numListeners() ?? 0;
+    hasListeners<Name extends keyof EventMap>(name: Name): boolean {
+        return this.handlers[name]?.hasListeners() ?? false;
     }
 }

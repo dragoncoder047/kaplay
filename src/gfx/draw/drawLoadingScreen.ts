@@ -9,7 +9,7 @@ import { drawUnscaled } from "./drawUnscaled";
 export function drawLoadScreen() {
     const progress = loadProgress();
 
-    if (_k.game.events.numListeners("loading") > 0) {
+    if (_k.game.events.hasListeners("loading")) {
         _k.game.events.trigger("loading", progress);
     }
     else {
