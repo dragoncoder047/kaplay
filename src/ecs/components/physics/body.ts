@@ -266,16 +266,17 @@ export function body(opt: BodyCompOpt = {}): BodyComp {
                 );
 
                 this.onPhysicsResolve((col) => {
+                    const other = col.target;
                     if (_k.game.gravity) {
                         if (col.isBottom() && this.isFalling()) {
                             // We need the past platform to check if we already were on a platform
                             const pastPlatform = curPlatform;
-                            curPlatform = col.target as GameObj<
+                            curPlatform = other as GameObj<
                                 PosComp | BodyComp | AreaComp
                             >;
                             if (pastPlatform != curPlatform) {
                                 // If we are on a new platform, update the sticky position
-                                lastPlatformPos = col.target.pos;
+                                lastPlatformPos = other.pos;
                             }
                             if (willFall) {
                                 // We would have fallen, but didn't.
@@ -285,39 +286,43 @@ export function body(opt: BodyCompOpt = {}): BodyComp {
                             else if (!pastPlatform) {
                                 // We weren't on a platform, land
                                 this.trigger("ground", curPlatform);
-                                col.target.trigger("land", this);
+                                other.trigger("land", this);
                             }
                         }
                         else if (col.isTop() && this.isJumping()) {
-                            this.trigger("headbutt", col.target);
-                            col.target.trigger("headbutted", this);
+                            this.trigger("headbutt", other);
+                            other.trigger("headbutted", this);
                         }
                     }
 
                     const restitution = Math.max(
-                        col.source.restitution || 0,
-                        col.target.restitution || 0,
+                        this.restitution || 0,
+                        other.restitution || 0,
                     );
 
                     const friction = Math.sqrt(
-                        (col.source.friction || 0)
-                            * (col.target.friction || 0),
+                        (this.friction || 0)
+                            * (other.friction || 0),
                     );
 
-                    const projection = this.vel.project(col.normal);
-                    const rejection = this.vel.sub(projection);
+                    const parallel = this.vel.project(col.normal);
+                    const perpendicular = this.vel.sub(parallel);
+                    const getInverseMass = (x: GameObj) =>
+                        x.isStatic ? 0 : 1 / (x.mass ?? 1);
 
                     // Clear the velocity in the direction of the normal, as we've hit something
                     if (this.vel.dot(col.normal) < 0) {
                         // Modulate the velocity tangential to the normal
-                        this.vel = rejection.sub(projection.scale(restitution));
+                        this.vel = perpendicular.sub(
+                            parallel.scale(restitution),
+                        );
                     }
 
                     if (friction != 0) {
                         // TODO: This should work with dt, not frame, but then friction 1 will brake in 1 second, not one frame
                         // TODO: This should depend with gravity, stronger gravity means more friction
-                        //       getGravityDirection().scale(getGravity()).project(col.normal).len()
-                        this.vel = this.vel.sub(rejection.scale(friction));
+                        //   _k.game.gravity?.project(col.normal).len()
+                        this.vel = this.vel.sub(perpendicular.scale(friction));
                     }
                 });
             }
