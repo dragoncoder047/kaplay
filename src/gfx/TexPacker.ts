@@ -85,13 +85,17 @@ export class TexPacker {
             }
         }
 
-        // not found --> go to next texture and put at (0, 0)
+        // no room --> go to next texture and put at (0, 0)
         if (!found) {
             this._ctx.clearRect(
-                x = y = 0,
+                x =
+                    y =
+                    p.x =
+                    p.y =
+                        0,
                 0,
-                this._el.width,
-                this._el.height,
+                maxX,
+                maxY,
             );
             this._textures.push(
                 curTex = Texture.fromImage(this._gfx, this._el),
@@ -110,12 +114,7 @@ export class TexPacker {
 
         return [
             curTex,
-            new Quad(
-                x / this._el.width,
-                y / this._el.height,
-                img.width / this._el.width,
-                img.height / this._el.height,
-            ),
+            new Quad(x / maxX, y / maxY, img.width / maxX, img.height / maxY),
             this._last++,
         ];
     }
