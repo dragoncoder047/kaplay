@@ -18,11 +18,10 @@ best friend, lajbel, can put the correct version name here
 
 ## [unreleased]
 
-### Improved
+### Added
 
-- Updated the texture packer to use a new packing algorithm which may get more
-  sprites onto the same texture, improving graphics batching performance -
-  @dragoncoder047
+- Added a `calculate()` method to the internal FPS counters, so advanced users
+  can access them to create their own FPS monitor (#1010) - @dragoncoder047
 
 ### Changed
 
@@ -32,8 +31,12 @@ best friend, lajbel, can put the correct version name here
 
 ### Fixed
 
+- Fixed input events attached to paused ancestors not being paused (#1009) -
+  @amyspark-ng, @dragoncoder047
+- Fixed type `UniformValue` union not including `Texture`, a valid option
+  (#1018) - @dragoncoder047
 - Text component no longer hangs if the requested width is too narrow for a
-  single character (#1016) - @dragoncoder047
+  single character - @dragoncoder047
 - Fixed input events attached to paused ancestors not being paused (#1009) -
   @amyspark-ng, @dragoncoder047
 - Fixed type `UniformValue` union not including `Texture`, a valid option
