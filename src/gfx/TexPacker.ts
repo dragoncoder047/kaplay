@@ -1,5 +1,6 @@
 import { drawImageSourceAt } from "../assets/utils";
 import { Quad, Rect, testRectRect } from "../math/math";
+import { BaseQuadtree } from "../math/spatial/quadtree";
 import { Vec2 } from "../math/Vec2";
 import type { ImageSource, TexFilter } from "../types";
 import { type GfxCtx, Texture } from "./gfx";
@@ -15,18 +16,19 @@ interface TexMap {
     tex: Texture;
     el: HTMLCanvasElement;
     ctx: CanvasRenderingContext2D;
+    tree: BaseQuadtree<number>;
 }
 
 class FilterTexPacker {
     _textures: Texture[] = [];
     _big: Frame[] = [];
-    _used: Map<number, {
+    _used = new Map<number, {
         rect: Rect;
         tex: Texture;
         used: number;
-    }> = new Map();
+    }>();
     _curMap: TexMap = null as any;
-    _tex2Map: Map<Texture, TexMap> = new Map();
+    _tex2Map = new Map<Texture, TexMap>();
 
     constructor(
         private _p: TexPacker,
@@ -51,7 +53,11 @@ class FilterTexPacker {
         const ctx = el.getContext("2d");
         if (!ctx) throw new Error("Failed to get 2d context");
 
-        this._tex2Map.set(tex, this._curMap = { tex, el, ctx });
+        const tree = new BaseQuadtree<number>(
+            new Rect(new Vec2(), this._w, this._h),
+        );
+        this._tex2Map.set(tex, this._curMap = { tex, el, ctx, tree });
+
         return this._curMap;
     }
     _sync() {
@@ -71,7 +77,7 @@ class FilterTexPacker {
         return f;
     }
 
-    _addAt(
+    _blit(
         img: ImageSource,
         x: number,
         y: number,
@@ -102,7 +108,7 @@ class FilterTexPacker {
         const pad = this._pad * 2;
         const paddedWidth = imgWidth + pad;
         const paddedHeight = imgHeight + pad;
-        let { el: curEl, ctx: curCtx, tex: curTex } = this._curMap;
+        let { el: curEl, tex: curTex, tree: tileTree } = this._curMap;
 
         const maxX = curEl.width, maxY = curEl.height;
         const rectToAdd = new Rect(new Vec2(), paddedWidth, paddedHeight);
@@ -119,13 +125,12 @@ class FilterTexPacker {
             // goes offscreen?
             if (x + paddedWidth > maxX || y + paddedHeight > maxY) return false;
             // try it
-            p.x = x;
-            p.y = y;
-            for (let { rect, tex } of this._used.values()) {
-                if (curTex !== tex) continue;
-                if (testRectRect(rect, rectToAdd)) return false;
-            }
-            return found = true;
+            p.set(x, y);
+            const hadIntersection = tileTree.retrieve(
+                rectToAdd,
+                id => testRectRect(this._used.get(id)!.rect, rectToAdd),
+            );
+            return hadIntersection ? false : (found = true);
         };
 
         // initial check for (0, 0)
@@ -161,10 +166,10 @@ class FilterTexPacker {
                 p.x =
                 p.y =
                     0;
-            ({ tex: curTex, ctx: curCtx, el: curEl } = this._newTexture());
+            ({ tex: curTex, tree: tileTree } = this._newTexture());
         }
 
-        this._addAt(img, x, y, chopX, chopY, imgWidth, imgHeight);
+        this._blit(img, x, y, chopX, chopY, imgWidth, imgHeight);
 
         const f = this._p._saveFrame(
             this,
@@ -177,6 +182,8 @@ class FilterTexPacker {
             tex: curTex,
             used: 0,
         });
+
+        tileTree.insert(f.id, rectToAdd);
 
         return f;
     }
@@ -198,7 +205,9 @@ class FilterTexPacker {
             return;
         }
         const { rect: { pos: { x, y }, width, height }, tex } = entry;
-        this._tex2Map.get(tex)!.ctx.clearRect(x, y, width, height);
+        const { ctx, tree } = this._tex2Map.get(tex)!;
+        ctx.clearRect(x, y, width, height);
+        tree.remove(packerId);
 
         this._used.delete(packerId);
         this._hasPendingRefresh = true;
@@ -242,19 +251,17 @@ export class TexPacker {
      */
     _createWhitePixel(): Frame {
         const packer = this._getPacker("nearest");
-        const { el: { width, height }, tex } = packer._curMap;
+        const { el: { width, height }, tex, tree } = packer._curMap;
         const whitePixel = new ImageData(
             new Uint8ClampedArray([255, 255, 255, 255]),
             1,
             1,
         );
-        packer._addAt(whitePixel, width - 1, height - 1, 0, 0, 1, 1);
+        packer._blit(whitePixel, width - 1, height - 1, 0, 0, 1, 1);
         packer._sync();
-        packer._used.set(-1, {
-            rect: new Rect(new Vec2(width - 1, height - 1), 1, 1),
-            tex: tex,
-            used: 0,
-        });
+        const rect = new Rect(new Vec2(width - 1, height - 1), 1, 1);
+        packer._used.set(-1, { rect, tex, used: 0 });
+        tree.insert(-1, rect);
         return {
             tex,
             q: new Quad(
@@ -276,11 +283,11 @@ export class TexPacker {
     syncIfPending() {
         Object.values(this._packers).forEach(p => p!._sync());
     }
-    remove(id: number) {
+    _remove(id: number) {
         this._idsToPackers[id]?._remove(id);
         delete this._idsToPackers[id];
     }
-    free() {
+    _free() {
         Object.values(this._packers).forEach(p => p!._free());
         this._packers = {};
     }

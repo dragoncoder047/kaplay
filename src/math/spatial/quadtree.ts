@@ -864,20 +864,22 @@ export class BaseQuadtree<T> {
     /**
      * Retrieves all objects potentially intersecting the rectangle
      * @param rect - The rect to test with
-     *
-     * @returns A set of objects potentially intersecting the rectangle
+     * @param retrieveCb - callback to receive the items that turn up. Return true to stop early.
      */
-    retrieve(rect: Rect, retrieveCb: (obj: T) => void): void {
+    retrieve(rect: Rect, retrieveCb: (obj: T) => boolean): boolean {
         for (let i = 0; i < this.objects.length; i++) {
-            retrieveCb(this.objects[i]);
+            if (retrieveCb(this.objects[i])) return true;
         }
 
         if (this.nodes.length) {
             const indices = this.getQuadrants(rect);
             for (let i = 0; i < indices.length; i++) {
-                this.nodes[indices[i]].retrieve(rect, retrieveCb);
+                if (this.nodes[indices[i]].retrieve(rect, retrieveCb)) {
+                    return true;
+                }
             }
         }
+        return false;
     }
 
     /**
