@@ -256,7 +256,7 @@ export function buoyancyEffector(
         flowMagnitude: opts.flowMagnitude ?? 0,
         flowVariation: opts.flowVariation ?? 0,
         add(this: GameObj<AreaComp | BuoyancyEffectorComp>) {
-            this.onCollideUpdate((obj, col) => {
+            this.onCollideUpdate(obj => {
                 if (!obj.has("body")) return;
                 const o = obj as GameObj<BodyComp | AreaComp>;
                 const shape = o.worldArea();

@@ -1,5 +1,5 @@
 import type { KEventController } from "../../../events/events";
-import { Vec2 } from "../../../math/Vec2";
+import { type SerializedVec2, Vec2 } from "../../../math/Vec2";
 import { _k } from "../../../shared";
 import type { Comp, GameObj, QueryOpt } from "../../../types";
 import { raycast } from "../draw/raycast";
@@ -77,7 +77,7 @@ export interface SentryCompOpt {
     /**
      * The frequency of checking, defaults to every second.
      */
-    checkFrequency?: number;
+    checkInterval?: number;
 }
 
 export type SentryCandidatesCb = () => GameObj<any>[];
@@ -92,7 +92,7 @@ export function sentry(
         : () => {
             return _k.game.root.query(candidates);
         };
-    const checkFrequency = opts.checkFrequency || 1;
+    const checkInterval = opts.checkInterval || 1;
     const directionVector = typeof opts.direction === "number"
         ? Vec2.fromAngle(opts.direction)
         : opts.direction;
@@ -141,8 +141,8 @@ export function sentry(
         },
         update(this: GameObj<SentryComp | PosComp>) {
             t += _k.app.dt();
-            if (t > checkFrequency) {
-                t -= checkFrequency;
+            if (t > checkInterval) {
+                t -= checkInterval;
                 let objects = get();
                 // If fieldOfView is used, keep only object within view
                 if (
@@ -169,11 +169,11 @@ export function sentry(
                 }
             }
         },
-        onObjectsSpotted(cb: (objects: GameObj[]) => void) {
-            return (this as unknown as GameObj<SentryComp>).on(
-                "objectSpotted",
-                cb,
-            );
+        onObjectsSpotted(
+            this: GameObj<SentryComp>,
+            cb: (objects: GameObj[]) => void,
+        ) {
+            return this.on("objectSpotted", cb);
         },
     };
 }

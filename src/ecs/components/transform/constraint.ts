@@ -1,17 +1,15 @@
 import { drawCircle } from "../../../gfx/draw/drawCircle";
-import { drawLine } from "../../../gfx/draw/drawLine";
 import { drawPolygon } from "../../../gfx/draw/drawPolygon";
 import {
     loadMatrix,
     multRotate,
     popTransform,
-    pushMatrix,
     pushTransform,
 } from "../../../gfx/stack";
 import { clamp } from "../../../math/clamp";
 import { Color } from "../../../math/color";
 import { lerp } from "../../../math/lerp";
-import { deg2rad, Mat23, rad2deg, vec2 } from "../../../math/math";
+import { Mat23, rad2deg, vec2 } from "../../../math/math";
 import {
     calcTransform,
     clampAngle,

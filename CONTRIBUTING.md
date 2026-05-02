@@ -78,3 +78,18 @@ Formatting: We use [`dprint`](https://dprint.dev) for automatic formatting.
 Before committing, run `pnpm run fmt`. Our CI scripts check if it's formatted,
 and
 [will fail if it isn't!](https://github.com/kaplayjs/kaplay/blob/e797bab0123c921bb5911c5f21d74f7317b741e7/.github/workflows/test.yml#L25-L33)
+
+If you want to take care of formatting automatically, you can put this in your
+`.git/hooks/pre-commit`:
+
+```sh
+#! /bin/sh
+pnpm fmt # run dprint
+# make sure the formatted files get committed
+FILES=$(git diff --name-only --cached)
+for f in $FILES; do
+    if [ -f "$f" ]; then # skip files that were deleted
+        git add "$f"
+    fi
+done
+```
