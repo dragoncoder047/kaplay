@@ -643,7 +643,6 @@ export function animate(gopts: AnimateCompOpt = {}): AnimateComp {
     const anims: Anim[] = [];
     let currentAnim: Anim | null = null;
     let t = 0;
-    let isFinished = false;
     return {
         id: "animate",
         require: gopts.followMotion ? ["rotate"] : undefined,

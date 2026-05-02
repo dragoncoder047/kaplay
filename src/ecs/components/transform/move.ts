@@ -20,7 +20,7 @@ interface SerializedMoveComp {
  * @subgroup Component Types
  */
 export interface MoveComp extends Comp {
-    serialize: () => SerializedMoveComp;
+    serialize(): SerializedMoveComp;
 }
 
 export function move(

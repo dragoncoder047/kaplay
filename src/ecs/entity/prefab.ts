@@ -68,9 +68,7 @@ export function createPrefab(nameOrObject: string | GameObj, object?: GameObj) {
     if (object) {
         _k.assets.prefabAssets.add(
             nameOrObject as string,
-            Promise.resolve(
-                new Asset<SerializedGameObj>(Promise.resolve(data)),
-            ),
+            Promise.resolve(data),
         );
     }
     return data;

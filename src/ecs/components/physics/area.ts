@@ -8,7 +8,7 @@ import { drawRect } from "../../../gfx/draw/drawRect";
 import { multTranslate, popTransform, pushTransform } from "../../../gfx/stack";
 import { rgb } from "../../../math/color";
 import { Circle, Polygon, Rect, shapeFactory, vec2 } from "../../../math/math";
-import { Vec2 } from "../../../math/Vec2";
+import { type SerializedVec2, Vec2 } from "../../../math/Vec2";
 import { _k } from "../../../shared";
 import type {
     Comp,
@@ -18,10 +18,7 @@ import type {
     Shape,
     Tag,
 } from "../../../types";
-import {
-    type InternalGameObjRaw,
-    objectTransformNeedsUpdate,
-} from "../../entity/GameObjRaw";
+import { type InternalGameObjRaw } from "../../entity/GameObjRaw";
 import { exists, isFixed } from "../../entity/utils";
 import type { Collision } from "../../systems/Collision";
 import { system, SystemPhase } from "../../systems/systems";
@@ -371,7 +368,17 @@ export interface AreaComp extends Comp {
      */
     screenArea(): Shape;
 
-    serialize(): any;
+    serialize(): SerializedAreaComp;
+}
+
+interface SerializedAreaComp {
+    shape?: ReturnType<Shape["serialize"]>;
+    scale?: SerializedVec2 | number;
+    offset?: SerializedVec2;
+    cursor?: string;
+    collisionIgnore?: string[];
+    restitution?: number;
+    friction?: number;
 }
 
 /**
@@ -857,7 +864,7 @@ export function area(
         },
 
         serialize() {
-            const data: any = {};
+            const data: SerializedAreaComp = {};
             if (this.area.shape) data.shape = this.area.shape.serialize();
             if (this.area.scale) {
                 data.scale = this.area.scale instanceof Vec2
@@ -878,7 +885,7 @@ export function area(
 }
 
 export function areaFactory(data: any) {
-    const opt: any = {};
+    const opt: AreaCompOpt = {};
     if (data.shape) opt.shape = shapeFactory(data.shape);
     if (data.scale) {
         opt.scale = typeof data.scale === "number"

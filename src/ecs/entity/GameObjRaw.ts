@@ -758,7 +758,7 @@ export const GameObjRawPrototype: Omit<
 
         for (const [id, c] of this._compStates) {
             if ("serialize" in c) {
-                data.components[id] = (c.serialize as () => any)();
+                data.components[id] = c.serialize!();
             }
         }
 

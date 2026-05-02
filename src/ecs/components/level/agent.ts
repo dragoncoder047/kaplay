@@ -1,5 +1,5 @@
 import type { KEventController } from "../../../events/events";
-import type { Vec2 } from "../../../math/Vec2";
+import type { SerializedVec2, Vec2 } from "../../../math/Vec2";
 import type { Comp, GameObj } from "../../../types";
 import type { PosComp } from "../transform/pos";
 import type { TileComp } from "./tile";
@@ -25,6 +25,12 @@ export interface AgentComp extends Comp {
     onNavigationNext(cb: () => void): KEventController;
     onNavigationEnded(cb: () => void): KEventController;
     onTargetReached(cb: () => void): KEventController;
+    serialize(): SerializedAgentComp;
+}
+
+interface SerializedAgentComp {
+    agentSpeed: number;
+    allowDiagonals: boolean;
 }
 
 /**
@@ -146,5 +152,15 @@ export function agent(opts: AgentCompOpt = {}): AgentComp {
                 path: JSON.stringify(path),
             });
         },
+        serialize() {
+            return {
+                agentSpeed: this.agentSpeed,
+                allowDiagonals: this.allowDiagonals,
+            };
+        },
     };
+}
+
+export function agentFactory(data: SerializedAgentComp) {
+    return agent(data);
 }

@@ -1955,9 +1955,9 @@ export class Point {
         return this.pt.clone();
     }
     serialize(): any {
-        return { "Point": { pt: this.pt.serialize() } };
+        return { Point: { pt: this.pt.serialize() } };
     }
-    support(direction: Vec2): Vec2 {
+    support(): Vec2 {
         return this.pt;
     }
     get gjkCenter(): Vec2 {

@@ -1,4 +1,4 @@
-import { Color, type ColorArgs, rgb, type RGBValue } from "../../../math/color";
+import { Color, type ColorArgs, rgb } from "../../../math/color";
 import type { Comp } from "../../../types";
 
 /**
@@ -30,13 +30,11 @@ export function color(...args: ColorArgs): ColorComp {
             return `color: ${this.color.toString()}`;
         },
         serialize() {
-            return {
-                color: this.color.serialize(),
-            };
+            return { color: this.color.serialize() };
         },
     };
 }
 
-export function colorFactory(data: any) {
-    return color(Color.deserialize(data));
+export function colorFactory(data: SerializedColorComp) {
+    return color(Color.deserialize(data.color));
 }

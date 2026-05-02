@@ -9,9 +9,7 @@ import type { Anchor, Comp } from "../../../types";
  * @group Components
  * @subgroup Component Serialization
  */
-export interface SerializedAnchorComp {
-    anchor: SerializedVec2;
-}
+export type SerializedAnchorComp = SerializedVec2;
 
 /**
  * The {@link anchor `anchor()`} component.
@@ -44,15 +42,11 @@ export function anchor(o: Anchor | Vec2): AnchorComp {
             }
         },
         serialize() {
-            return {
-                anchor: this.anchor instanceof Vec2
-                    ? this.anchor.serialize()
-                    : anchorPt(this.anchor).serialize(),
-            };
+            return anchorPt(this.anchor).serialize();
         },
     };
 }
 
 export function anchorFactory(data: SerializedAnchorComp) {
-    return anchor(new Vec2(data.anchor.x, data.anchor.y));
+    return anchor(Vec2.deserialize(data));
 }

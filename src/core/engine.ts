@@ -12,8 +12,17 @@ import { maskFactory } from "../ecs/components/draw/mask";
 import { opacityFactory } from "../ecs/components/draw/opacity";
 import { outlineFactory } from "../ecs/components/draw/outline";
 import { rectFactory } from "../ecs/components/draw/rect";
+import { shaderFactory } from "../ecs/components/draw/shader";
 import { spriteFactory } from "../ecs/components/draw/sprite";
 import { textFactory } from "../ecs/components/draw/text";
+import { agentFactory } from "../ecs/components/level/agent";
+import { levelFactory } from "../ecs/components/level/level";
+import { patrolFactory } from "../ecs/components/level/patrol";
+import { nameFactory } from "../ecs/components/misc/named";
+import { stateFactory } from "../ecs/components/misc/state";
+import { stayFactory } from "../ecs/components/misc/stay";
+import { areaFactory } from "../ecs/components/physics/area";
+import { bodyFactory } from "../ecs/components/physics/body";
 import { anchorFactory } from "../ecs/components/transform/anchor";
 import { fixedFactory } from "../ecs/components/transform/fixed";
 import { moveFactory } from "../ecs/components/transform/move";
@@ -108,10 +117,10 @@ export const createEngine = (gopt: KAPLAYOpt) => {
     // Transform Serialization
     registerPrefabFactory("anchor", anchorFactory);
     registerPrefabFactory("fixed", fixedFactory);
-    // `follow()` missing, we should figure a way to serialize an object reference (probably use named())
-    // `layer()` missing, needs investigation
+    // follow() missing: don't know how to serialize a reference to a GameObj (use the name from named()?)
+    // layer() missing: depends on setLayers() having the right thing
     registerPrefabFactory("move", moveFactory);
-    // `offscreen()` missing
+    // offscreen() missing
     registerPrefabFactory("pos", posFactory);
     registerPrefabFactory("rotate", rotateFactory);
     registerPrefabFactory("scale", scaleFactory);
@@ -121,20 +130,35 @@ export const createEngine = (gopt: KAPLAYOpt) => {
     registerPrefabFactory("blend", blendFactory);
     registerPrefabFactory("circle", circleFactory);
     registerPrefabFactory("color", colorFactory);
-    // `drawon()` missing
+    // drawon() missing: don't know how to serialize the FrameBuffer
     registerPrefabFactory("ellipse", ellipseFactory);
-    // `fadeIn()` missing
+    // fadeIn() missing: is this even worth serializing
     registerPrefabFactory("mask", maskFactory);
+    registerPrefabFactory("shader", shaderFactory);
     registerPrefabFactory("opacity", opacityFactory);
     registerPrefabFactory("outline", outlineFactory);
-    // `particles()` missing
-    // `picture()` missing
-    // `raycast()` missing, anyway, is not a component
+    // particles() missing: don't know how to serialize the Texture
+    // picture() missing: don't know how to serialize Picture's Mesh/Material internals
+    // polygon() missing: don't know how to serialize Texture
+    // raycast() is not a component
     registerPrefabFactory("rect", rectFactory);
     registerPrefabFactory("sprite", spriteFactory);
     registerPrefabFactory("text", textFactory);
-    // `uvquad()` missing
-    // `video()` missing
+    // uvquad() missing: this provides width and height only, how should that be serialized?
+    // video() missing: don't know how to serialize the Texture or <video>
+
+    // idk what to call these
+    registerPrefabFactory("level", levelFactory);
+    registerPrefabFactory("named", nameFactory);
+    registerPrefabFactory("state", stateFactory);
+    registerPrefabFactory("stay", stayFactory);
+    registerPrefabFactory("agent", agentFactory);
+    // pathfinder() missing: unsure on how to serialize the Graph
+    registerPrefabFactory("patrol", patrolFactory);
+
+    // physics serialization
+    registerPrefabFactory("area", areaFactory);
+    registerPrefabFactory("body", bodyFactory);
 
     return {
         globalOpt: opt,

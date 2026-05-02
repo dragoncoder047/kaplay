@@ -28,7 +28,7 @@ export interface FillComp extends Comp {
 export function fill(fill = true): FillComp {
     return {
         id: "fill",
-        fill: fill,
+        fill,
         serialize() {
             return { fill: this.fill };
         },

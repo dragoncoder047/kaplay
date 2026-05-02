@@ -9,14 +9,12 @@ import type { Comp, Outline } from "../../../types";
  * @subgroup Component Serialization
  */
 export interface SerializedOutlineComp {
-    outline: {
-        width: number;
-        color: SerializedColor;
-        opacity: number;
-        join: LineJoin;
-        miterLimit: number;
-        cap: LineCap;
-    };
+    width: number;
+    color: SerializedColor;
+    opacity: number;
+    join: LineJoin;
+    miterLimit: number;
+    cap: LineCap;
 }
 
 /**
@@ -53,18 +51,16 @@ export function outline(
         },
         serialize() {
             return {
-                outline: {
-                    width: this.outline.width ?? 1,
-                    color: {
-                        r: this.outline.color?.r ?? 255,
-                        g: this.outline.color?.g ?? 255,
-                        b: this.outline.color?.b ?? 255,
-                    },
-                    opacity: this.outline.opacity ?? 1,
-                    join: this.outline.join ?? "miter",
-                    miterLimit: this.outline.miterLimit ?? 10,
-                    cap: this.outline.cap ?? "butt",
+                width: this.outline.width ?? 1,
+                color: {
+                    r: this.outline.color?.r ?? 255,
+                    g: this.outline.color?.g ?? 255,
+                    b: this.outline.color?.b ?? 255,
                 },
+                opacity: this.outline.opacity ?? 1,
+                join: this.outline.join ?? "miter",
+                miterLimit: this.outline.miterLimit ?? 10,
+                cap: this.outline.cap ?? "butt",
             };
         },
     };
@@ -72,11 +68,11 @@ export function outline(
 
 export function outlineFactory(data: SerializedOutlineComp) {
     return outline(
-        data.outline.width,
-        Color.deserialize(data.outline.color),
-        data.outline.opacity,
-        data.outline.join,
-        data.outline.miterLimit,
-        data.outline.cap,
+        data.width,
+        Color.deserialize(data.color),
+        data.opacity,
+        data.join,
+        data.miterLimit,
+        data.cap,
     );
 }

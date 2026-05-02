@@ -2,7 +2,7 @@ import { toScreen, toWorld } from "../../../game/camera";
 import { drawCircle } from "../../../gfx/draw/drawCircle";
 import { rgb } from "../../../math/color";
 import { vec2, type Vec2Args } from "../../../math/math";
-import { Vec2 } from "../../../math/Vec2";
+import { type SerializedVec2, Vec2 } from "../../../math/Vec2";
 import { _k } from "../../../shared";
 import type { Comp, GameObj } from "../../../types";
 import {
@@ -19,7 +19,7 @@ import type { FixedComp } from "./fixed";
  * @subgroup Component Serialization
  */
 export interface SerializedPosComp {
-    pos: { x: number; y: number };
+    pos: SerializedVec2;
 }
 
 /**

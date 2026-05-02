@@ -139,7 +139,16 @@ export interface BodyComp extends Comp {
      */
     onHeadbutted(action: (obj: GameObj) => void): KEventController;
 
-    serialize(): any;
+    serialize(): SerializedBodyComp;
+}
+
+interface SerializedBodyComp {
+    jumpForce?: number;
+    maxVelocity?: number;
+    gravityScale?: number;
+    isStatic?: boolean;
+    stickToPlatform?: boolean;
+    mass?: number;
 }
 
 /**
@@ -535,8 +544,8 @@ export function body(opt: BodyCompOpt = {}): BodyComp {
             return `gravityScale: ${this.gravityScale}x`;
         },
 
-        serialize(): any {
-            const data: any = {};
+        serialize() {
+            const data: SerializedBodyComp = {};
             if (opt.jumpForce) data.jumpForce = opt.jumpForce;
             if (opt.maxVelocity) data.maxVelocity = opt.maxVelocity;
             if (opt.gravityScale) data.gravityScale = opt.gravityScale;

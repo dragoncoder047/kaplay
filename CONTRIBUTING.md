@@ -68,3 +68,13 @@ A commit starts with a type, a scope, and a subject:
   future.
 - The subject must be a short description of the change. Use the imperative,
   present tense: "change" not "changed" nor "changes".
+
+## Typescript Conventions
+
+Declaring variables: Avoid `var` wherever possible, use `const` if it's never
+reassigned or `let` if it is.
+
+Formatting: We use [`dprint`](https://dprint.dev) for automatic formatting.
+Before committing, run `pnpm run fmt`. Our CI scripts check if it's formatted,
+and
+[will fail if it isn't!](https://github.com/kaplayjs/kaplay/blob/e797bab0123c921bb5911c5f21d74f7317b741e7/.github/workflows/test.yml#L25-L33)

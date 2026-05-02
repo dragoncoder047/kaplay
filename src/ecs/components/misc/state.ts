@@ -7,10 +7,10 @@ import type { Comp } from "../../../types";
  * @group Components
  * @subgroup Component Serialization
  */
-export interface SerializeStateComp {
+export interface SerializedStateComp {
     initState: string;
-    stateList: string[];
-    transitions: Record<string, string | string[]>;
+    stateList?: string[];
+    transitions?: Record<string, string | string[]>;
 }
 
 /**
@@ -57,7 +57,7 @@ export interface StateComp<T extends string> extends Comp {
      * Register an event that runs every frame when in a specific state.
      */
     onStateDraw: (state: T, action: () => void) => KEventController;
-    serialize(): SerializeStateComp;
+    serialize(): SerializedStateComp;
 }
 
 export function state<T extends string>(
@@ -174,15 +174,17 @@ export function state<T extends string>(
         },
 
         serialize() {
-            const data: any = {};
-            data.initState = initState;
-            if (stateList) data.stateList = stateList.slice();
-            if (transitions) data.transitions = Object.assign({}, transitions);
-            return data;
+            return {
+                initState,
+                stateList: stateList?.slice(),
+                transitions: transitions
+                    ? Object.assign({}, transitions)
+                    : undefined,
+            };
         },
     };
 }
 
-export function stateFactory(data: SerializeStateComp) {
+export function stateFactory(data: SerializedStateComp) {
     return state(data.initState, data.stateList, data.transitions);
 }

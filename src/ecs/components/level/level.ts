@@ -18,6 +18,13 @@ import { deserializeComp } from "../../entity/prefab";
 import { pos, type PosComp } from "../transform/pos";
 import { tile } from "./tile";
 
+interface SerializedLevelComp {
+    tileWidth: number;
+    tileHeight: number;
+    tiles: Record<string, Record<string, unknown> & { tags: string[] }>;
+    wildcardTile: unknown;
+}
+
 /**
  * The {@link level `level()`} component.
  *
@@ -87,7 +94,7 @@ export interface LevelComp extends Comp {
     invalidateNavigationMap(): void;
     onNavigationMapChanged(cb: () => void): KEventController;
 
-    serialize(): any;
+    serialize(): SerializedLevelComp;
 }
 
 /**
@@ -698,11 +705,13 @@ export function level(map: string[], opt: LevelCompOpt): LevelComp {
             }
         },
 
-        serialize(): any {
-            const data: any = {};
-            data.tileWidth = opt.tileWidth;
-            data.tileHeight = opt.tileHeight;
-            data.tiles = {}; // { symbol: prefab };
+        serialize() {
+            const data: SerializedLevelComp = {
+                tileWidth: opt.tileWidth,
+                tileHeight: opt.tileHeight,
+                tiles: {}, // { symbol: prefab };
+                wildcardTile: {}, // No idea how to handle this yet
+            };
             // tiles maps symbols to functions returning a list of components
             // To serialize this, we get the list of components for each symbol, and serialize them
             for (const key of Object.keys(opt.tiles)) {
@@ -723,25 +732,27 @@ export function level(map: string[], opt: LevelCompOpt): LevelComp {
                 if (tags.length) comps.tags = tags;
                 data.tiles[key] = comps;
             }
-            // No idea how to handle this yet
-            data.wildcardTile = {}; // prefab
             return data;
         },
     };
 }
 
-export function levelFactory(data: any) {
-    const opt: any = { tileWidth: data.tileWidth, tileHeight: data.tileHeight };
-    opt.tiles = {};
-    for (const key in Object.keys(data.tiles)) {
-        const d = data.tiles[key];
+export function levelFactory(data: SerializedLevelComp) {
+    const opt: LevelCompOpt = {
+        tileWidth: data.tileWidth,
+        tileHeight: data.tileHeight,
+        tiles: {},
+    };
+    for (const [key, d] of Object.entries(data.tiles)) {
         const tags = d.tags;
-        opt.tiles[key] = (pos: Vec2) => {
-            const comps: Comp[] = Object.keys(d).filter(k => k != "tags").map(
-                id => deserializeComp(id, d[id]),
+        opt.tiles[key] = _ => {
+            const comps: Comp[] = Object.entries(d).flatMap(
+                ([id, data]) =>
+                    id === "tags" ? [] : [deserializeComp(id, data)],
             );
             return [...comps, ...tags];
         };
     }
+    // No data here since children are already restored by the prefab builder
     return level([], opt);
 }

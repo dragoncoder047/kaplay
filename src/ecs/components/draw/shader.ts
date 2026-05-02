@@ -7,7 +7,7 @@ import type { Comp } from "../../../types";
  * @group Components
  * @subgroup Component Serialization
  */
-export interface SerializeShaderComp {
+export interface SerializedShaderComp {
     shader: string;
 }
 
@@ -23,10 +23,14 @@ export interface ShaderComp extends Comp {
      */
     uniform?: Uniform;
     /**
+     * If present, this will be called every frame to recalculate the uniforms.
+     */
+    getUniform?(): Uniform;
+    /**
      * The shader ID.
      */
     shader: string;
-    serialize(): SerializeShaderComp;
+    serialize(): SerializedShaderComp;
 }
 
 export function shader(
@@ -36,25 +40,21 @@ export function shader(
     return {
         id: "shader",
         shader: id,
-        ...(typeof uniform === "function"
-            ? {
-                uniform: uniform(),
-                update() {
-                    this.uniform = uniform();
-                },
-            }
-            : {
-                uniform: uniform,
-            }),
+        uniform: typeof uniform === "function" ? {} : uniform,
+        getUniform: typeof uniform === "function" ? uniform : undefined,
+        update() {
+            if (this.getUniform) this.uniform = this.getUniform();
+        },
         inspect() {
-            return `shader: ${id}`;
+            return `shader: ${this.shader}`;
         },
         serialize() {
+            // TODO: serialize uniforms. How to save references to textures and stuff?
             return { shader: this.shader };
         },
     };
 }
 
-export function shaderFactory(data: any) {
+export function shaderFactory(data: SerializedShaderComp) {
     return shader(data.shader);
 }
