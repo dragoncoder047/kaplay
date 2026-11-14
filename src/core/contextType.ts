@@ -513,7 +513,7 @@ export interface KAPLAYCtx {
      */
     setSingletonTags(tags: Tag[]): void;
     /**
-     * Make tag a {@link KAPLAYOpt.singletonTags `singleton tag`}.
+     * Make tag a {@link KAPLAYOpt.singletonTags singleton tag}.
      * All existing objects with a tag will be untagged except the passed `obj` or the last occurrence in the object tree.
      *
      * @param tag - The tag.
@@ -524,7 +524,7 @@ export interface KAPLAYCtx {
      */
     addSingletonTag(tag: Tag, obj?: GameObj): void;
     /**
-     * Make tag(s) no longer {@link KAPLAYOpt.singletonTags `singleton tag(s)`}.
+     * Make tag(s) no longer {@link KAPLAYOpt.singletonTags singleton tag(s)}.
      *
      * @param tag - The tag(s) to remove.
      *
@@ -533,7 +533,7 @@ export interface KAPLAYCtx {
      */
     removeSingletonTag(tag: Tag | Tag[]): void;
     /**
-     * Check if a tag is a {@link KAPLAYOpt.singletonTags `singleton tag`}.
+     * Check if a tag is a {@link KAPLAYOpt.singletonTags singleton tag}.
      *
      * @param tag - The tag to check.
      *
@@ -4675,7 +4675,8 @@ export interface KAPLAYCtx {
     /**
      * Camera shake.
      *
-     * @param intensity - The intensity of the shake. Defaults to 12.
+     * @param intensity - The intensity of the shake. Can be a number or a `vec2` to constrain the shake direction. Defaults to 12.
+     * @param duration - The duration of the shake in seconds. If not passed, the intensity will determine the duration.
      *
      * @example
      * ```js
@@ -4683,13 +4684,16 @@ export interface KAPLAYCtx {
      * bean.onCollide("bomb", () => {
      *     shake(120)
      * })
+     *
+     * // shake horizontally only for half a second like an "error"
+     * shake(vec2(60, 0), 0.5)
      * ```
      *
      * @since v3000.0
      * @group Rendering
      * @subgroup Camera
      */
-    shake(intensity?: number): void;
+    shake(intensity?: number | Vec2, duration?: number): void;
     /**
      * Camera flash.
      *
